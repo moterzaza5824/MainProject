@@ -1,0 +1,1 @@
+-- TODO: เปิด RLS และกำหนดสิทธิ์ Student/Admin ทุกตาราง

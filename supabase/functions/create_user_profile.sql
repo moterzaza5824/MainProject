@@ -1,0 +1,1 @@
+-- TODO: Trigger สร้าง users profile หลัง Google OAuth ครั้งแรก

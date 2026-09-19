@@ -1,0 +1,17 @@
+:root {
+  --color-primary: #078a54;
+  --color-primary-hover: #05663e;
+  --color-primary-light: #dcfce7;
+  --color-black: #0c120f;
+  --color-background: #f3f6f4;
+  --color-surface: #ffffff;
+  --color-border: #d7e0da;
+  --color-text-primary: #101713;
+  --color-text-secondary: #46534c;
+  --color-text-muted: #76827b;
+  --navbar-height: 4rem;
+  --sidebar-width: 15rem;
+  --sidebar-collapsed-width: 4.5rem;
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+}
