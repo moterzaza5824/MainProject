@@ -24,17 +24,18 @@
 
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
+      <button class="sidebar-toggle" id="sidebarToggle" aria-label="พับเมนูด้านข้าง" aria-expanded="true" title="พับเมนูด้านข้าง"><span data-icon="chevleft"></span></button>
       <nav aria-label="เมนูด้านข้าง">
         <p class="nav-label">พื้นที่ของฉัน</p>
-        <a href="#"><span data-icon="layout"></span>ภาพรวม</a>
-        <a href="#"><span data-icon="megaphone"></span>ประกาศทางการ</a>
-        <a href="#"><span data-icon="messages"></span>ประกาศทั่วไป</a>
-        <a class="active" href="#"><span data-icon="clipboard"></span>งานและการบ้าน <b id="sidebarCount">3</b></a>
-        <a href="#"><span data-icon="calendar"></span>ปฏิทิน</a>
+        <a href="#" title="ภาพรวม"><span data-icon="layout"></span><span class="nav-text">ภาพรวม</span></a>
+        <a href="#" title="ประกาศทางการ"><span data-icon="megaphone"></span><span class="nav-text">ประกาศทางการ</span></a>
+        <a href="#" title="ประกาศทั่วไป"><span data-icon="messages"></span><span class="nav-text">ประกาศทั่วไป</span></a>
+        <a class="active" href="#" title="งานและการบ้าน"><span data-icon="clipboard"></span><span class="nav-text">งานและการบ้าน</span><b id="sidebarCount">3</b></a>
+        <a href="#" title="ปฏิทิน"><span data-icon="calendar"></span><span class="nav-text">ปฏิทิน</span></a>
         <p class="nav-label secondary">บัญชี</p>
-        <a href="#"><span data-icon="user"></span>โปรไฟล์</a>
+        <a href="#" title="โปรไฟล์"><span data-icon="user"></span><span class="nav-text">โปรไฟล์</span></a>
       </nav>
-      <button class="signout"><span data-icon="logout"></span>ออกจากระบบ</button>
+      <button class="signout" title="ออกจากระบบ"><span data-icon="logout"></span><span class="nav-text">ออกจากระบบ</span></button>
     </aside>
     <div class="scrim" id="scrim"></div>
 
