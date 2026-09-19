@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SE68 Hub ศูนย์รวมข้อมูลและติดตามงานสำหรับนักศึกษาวิศวกรรมซอฟต์แวร์ รุ่น 68">
+  <title>งานและการบ้าน | SE68 Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <button class="icon-button menu-button" id="menuButton" aria-label="เปิดเมนู"><span data-icon="menu"></span></button>
+    <a class="brand" href="#" aria-label="SE68 Hub หน้าหลัก"><span class="brand-mark">S68</span><span>SE68 <strong>HUB</strong></span></a>
+    <nav class="topnav" aria-label="เมนูหลัก"><a href="#">ภาพรวม</a><a href="#">ประกาศ</a><a class="active" href="#">งานและการบ้าน</a></nav>
+    <div class="profile-area">
+      <button class="icon-button notification" aria-label="การแจ้งเตือน 3 รายการ"><span data-icon="bell"></span><i>3</i></button>
+      <div class="profile-copy"><strong>ณัฐดนัย ใจดี</strong><span>student@up.ac.th</span></div>
+      <div class="avatar" aria-hidden="true">ณ</div>
+    </div>
+  </header>
+
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <nav aria-label="เมนูด้านข้าง">
+        <p class="nav-label">พื้นที่ของฉัน</p>
+        <a href="#"><span data-icon="layout"></span>ภาพรวม</a>
+        <a href="#"><span data-icon="megaphone"></span>ประกาศทางการ</a>
+        <a href="#"><span data-icon="messages"></span>ประกาศทั่วไป</a>
+        <a class="active" href="#"><span data-icon="clipboard"></span>งานและการบ้าน <b id="sidebarCount">3</b></a>
+        <a href="#"><span data-icon="calendar"></span>ปฏิทิน</a>
+        <p class="nav-label secondary">บัญชี</p>
+        <a href="#"><span data-icon="user"></span>โปรไฟล์</a>
+      </nav>
+      <button class="signout"><span data-icon="logout"></span>ออกจากระบบ</button>
+    </aside>
+    <div class="scrim" id="scrim"></div>
+
+    <main>
+      <section class="page-heading">
+        <div><p class="eyebrow">ASSIGNMENT TRACKER</p><h1>งานและการบ้าน</h1><p>ติดตามงาน กำหนดส่ง และความคืบหน้าส่วนบุคคล</p></div>
+        <div class="today"><span data-icon="calendar"></span><div><span>วันนี้</span><strong>19 กันยายน 2569</strong></div></div>
+      </section>
+
+      <section class="urgent-banner" id="urgentBanner">
+        <div class="urgent-icon"><span data-icon="alert"></span></div>
+        <div><h2>งานด่วนภายใน 48 ชั่วโมง</h2><p>มี <strong id="urgentCount">2 งาน</strong> ที่ใกล้ถึงกำหนดส่ง ตรวจสอบให้พร้อมก่อนส่ง</p></div>
+        <button class="secondary-button" id="showUrgent">ดูงานด่วนทั้งหมด <span data-icon="arrow"></span></button>
+      </section>
+
+      <section class="filter-card" aria-label="ตัวกรองงาน">
+        <div class="segment-wrap"><span class="filter-label">Section</span><div class="segments" id="sectionFilter"><button class="active" data-value="ALL">ALL</button><button data-value="SEC 1">Sec 1</button><button data-value="SEC 2">Sec 2</button></div></div>
+        <label><span class="filter-label">สถานะ</span><select id="statusFilter"><option value="ALL">ทั้งหมด</option><option>TODO</option><option>DOING</option><option>DONE</option></select></label>
+        <label><span class="filter-label">รายวิชา</span><select id="subjectFilter"><option value="ALL">ทุกวิชา</option></select></label>
+        <label><span class="filter-label">เรียงตาม</span><select id="sortFilter"><option value="near">กำหนดส่งใกล้ที่สุด</option><option value="far">กำหนดส่งไกลที่สุด</option><option value="updated">อัปเดตล่าสุด</option></select></label>
+      </section>
+
+      <section class="content-toolbar">
+        <div><h2>งานทั้งหมด</h2><p><span id="resultCount">4</span> งานที่ตรงกับตัวกรอง</p></div>
+        <div class="view-toggle" role="group" aria-label="เลือกรูปแบบการแสดงผล"><button class="active" data-view="list"><span data-icon="list"></span>รายการ</button><button data-view="calendar"><span data-icon="calendar"></span>ปฏิทิน</button></div>
+      </section>
+
+      <section id="listView" class="assignment-list" aria-live="polite"></section>
+      <section id="calendarView" class="calendar-panel hidden" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="modalBackdrop">
+    <section class="detail-drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+      <div class="drawer-head"><div><p id="drawerSubject" class="eyebrow"></p><h2 id="drawerTitle"></h2></div><button class="icon-button" id="closeDrawer" aria-label="ปิดรายละเอียด"><span data-icon="close"></span></button></div>
+      <div id="drawerBody"></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
