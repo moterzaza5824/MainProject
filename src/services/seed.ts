@@ -1,0 +1,32 @@
+import type { Snapshot, UserRow } from "../types/models";
+export function createSeed(): Snapshot {
+  const now = new Date();
+  const iso = now.toISOString();
+  const due = (offset: number, hour = 23) => { const d = new Date(now); d.setDate(d.getDate() + offset); d.setHours(hour, 59, 0, 0); return d.toISOString(); };
+  const users: UserRow[] = [
+    { uid: "student-demo", full_name: "ณัฐดนัย ใจดี", email: "68020001@up.ac.th", student_id: "68020001", role: "student", created_at: iso, updated_at: iso },
+    { uid: "admin-demo", full_name: "พิมพ์ชนก ศรีสุข", email: "68020002@up.ac.th", student_id: "68020002", role: "admin", created_at: iso, updated_at: iso }
+  ];
+  return {
+    users,
+    assignments: [
+      { assignment_id: "oop-lab4", created_by: "admin-demo", subject_name: "Object-Oriented Programming", title: "Lab 4: Inheritance & Polymorphism", description: "## สิ่งที่ต้องส่ง\nเขียนโปรแกรมจำลองระบบห้องสมุดด้วยแนวคิดการสืบทอดคลาส\n- สร้างคลาส Book, EBook และ PrintedBook\n- อธิบายการใช้ method overriding\n- ส่ง source code และ README อธิบายวิธีรัน\n\n**ตรวจสอบชื่อไฟล์และรหัสนิสิตก่อนส่งงาน**", submission_channel: "Microsoft Teams", schedule_mode: "SPLIT", due_dates: { sec_1: due(0), sec_2: due(1, 18) }, resources: ["https://docs.oracle.com/javase/tutorial/java/IandI/subclasses.html"], created_at: iso, updated_at: iso },
+      { assignment_id: "database-er", created_by: "admin-demo", subject_name: "Database Systems", title: "ออกแบบ ER Diagram ระบบจองห้อง", description: "วิเคราะห์ความต้องการของระบบจองห้องประชุม\n- ระบุ Entity, Attribute และ Relationship\n- แสดง Cardinality ให้ครบทุกความสัมพันธ์\n- แนบคำอธิบายสมมติฐานที่ใช้ในการออกแบบ", submission_channel: "Google Classroom", schedule_mode: "UNIFIED", due_dates: { all: due(1, 18) }, resources: [], created_at: iso, updated_at: iso },
+      { assignment_id: "srs-project", created_by: "admin-demo", subject_name: "Software Engineering", title: "Software Requirement Specification", description: "จัดทำเอกสาร SRS ของโปรเจกต์กลุ่ม ตามหัวข้อที่กำหนดในชั้นเรียน\n- Scope และผู้ใช้งานระบบ\n- Functional / Non-functional requirements\n- Acceptance criteria", submission_channel: "Microsoft Teams", schedule_mode: "SPLIT", due_dates: { sec_2: due(5) }, resources: [], created_at: iso, updated_at: iso },
+      { assignment_id: "web-dashboard", created_by: "admin-demo", subject_name: "Web Development", title: "Responsive Dashboard", description: "พัฒนาหน้า Dashboard ด้วย HTML, CSS และ TypeScript รองรับตั้งแต่หน้าจอ 360px และทดสอบการใช้งานด้วยคีย์บอร์ด", submission_channel: "GitHub Classroom", schedule_mode: "SPLIT", due_dates: { sec_1: due(7, 20) }, resources: ["https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Responsive_Design"], created_at: iso, updated_at: iso },
+      { assignment_id: "oop-review", created_by: "admin-demo", subject_name: "Object-Oriented Programming", title: "แบบฝึกหัดทบทวน Class & Object", description: "ทบทวนหลักการ Encapsulation และวาด Class diagram ของระบบที่เลือก", submission_channel: "Microsoft Teams", schedule_mode: "UNIFIED", due_dates: { all: due(-2) }, resources: [], created_at: iso, updated_at: iso },
+      { assignment_id: "database-sql", created_by: "admin-demo", subject_name: "Database Systems", title: "SQL Practice: JOIN & GROUP BY", description: "ฝึกเขียน SQL จากชุดข้อมูลที่อาจารย์กำหนด พร้อมอธิบายผลลัพธ์ของแต่ละคำสั่ง", submission_channel: "Google Classroom", schedule_mode: "UNIFIED", due_dates: { all: due(9) }, resources: [], created_at: iso, updated_at: iso }
+    ],
+    posts: [
+      { post_id: "official-exam", author_id: "admin-demo", author_name: users[1].full_name, title: "เตรียมตัวสอบกลางภาค: ตรวจสอบตารางและห้องสอบ", content: "## ข้อปฏิบัติสำหรับการสอบ\nขอให้นิสิตตรวจสอบตารางสอบในระบบทะเบียน และมาถึงห้องสอบก่อนเวลาอย่างน้อย 15 นาที\n- เตรียมบัตรนิสิตให้พร้อม\n- ตรวจสอบรายวิชาและกลุ่มเรียนของตัวเอง\n- หากมีตารางสอบซ้อน ติดต่ออาจารย์ผู้สอน\n\n**ประกาศนี้เป็นข้อมูลตัวอย่างสำหรับทดลองใช้งาน**", category: "official", status: "published", is_pinned: true, target_scope: "ALL", target_sections: [], attachments: [], approved_by: "admin-demo", created_at: iso, updated_at: iso },
+      { post_id: "official-lab", author_id: "admin-demo", author_name: users[1].full_name, title: "แจ้งเปลี่ยนห้องเรียนปฏิบัติการ OOP — Sec 1", content: "สัปดาห์นี้เปลี่ยนห้องปฏิบัติการเป็น ICT 1107 โดยเวลาเรียนคงเดิม\nกรุณาเตรียมโน้ตบุ๊กและติดตั้ง JDK ก่อนเข้าชั้นเรียน", category: "official", status: "published", is_pinned: false, target_scope: "SPECIFIC", target_sections: [1], attachments: [], approved_by: "admin-demo", created_at: iso, updated_at: iso },
+      { post_id: "general-study", author_id: "student-demo", author_name: users[0].full_name, title: "ชวนทบทวน Database ก่อนสอบด้วยกัน", content: "ใครอยากทบทวน ER Diagram และ SQL มาพบกันที่โซนอ่านหนังสือได้เลย\n- ทบทวน Entity และ Relationship\n- ฝึกเขียน JOIN\n- ช่วยกันอธิบายข้อที่ยังไม่เข้าใจ", category: "general", status: "published", is_pinned: false, target_scope: "ALL", target_sections: [], attachments: [{ name: "เอกสาร PostgreSQL", url: "https://www.postgresql.org/docs/current/tutorial.html" }], created_at: iso, updated_at: iso },
+      { post_id: "pending-workshop", author_id: "student-demo", author_name: users[0].full_name, title: "ขอประกาศกิจกรรม Workshop Git สำหรับ SE68", content: "เสนอจัดกิจกรรมเรียนรู้ Git เบื้องต้นสำหรับเพื่อนร่วมรุ่น\nหัวข้อ: branch, commit และ pull request\nขอให้ตัวแทนรุ่นตรวจสอบรายละเอียดก่อนเผยแพร่เป็นประกาศทางการ", category: "official", status: "pending", is_pinned: false, target_scope: "ALL", target_sections: [], attachments: [], created_at: iso, updated_at: iso }
+    ],
+    progress: [
+      { id: "student-demo_oop-lab4", uid: "student-demo", assignment_id: "oop-lab4", status: "DOING", note: "เหลือทดสอบ method overriding", updated_at: iso },
+      { id: "student-demo_web-dashboard", uid: "student-demo", assignment_id: "web-dashboard", status: "DONE", note: "ตรวจ responsive แล้ว", updated_at: iso }
+    ]
+  };
+}
+

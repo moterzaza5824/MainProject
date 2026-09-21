@@ -1,4 +1,2 @@
-import "./styles/index.css";
-import { mountAppLayout } from "./layouts/app-layout";
-
-mountAppLayout();
+// Shared application entry. Each HTML route imports the same guarded bootstrap.
+import "./bootstrap";

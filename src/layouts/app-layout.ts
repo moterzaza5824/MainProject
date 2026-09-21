@@ -1,7 +1,1 @@
-import { mountNavbar } from "../components/navbar";
-import { mountSidebar } from "../components/sidebar";
-
-export function mountAppLayout(): void {
-  mountNavbar();
-  mountSidebar();
-}
+export { mountShell as mountAppLayout, heading } from "../ui/shell";

@@ -1,9 +1,4 @@
-import { supabase } from "./supabase-client";
-
-export async function signInWithGoogle(): Promise<void> {
-  await supabase.auth.signInWithOAuth({ provider: "google" });
-}
-
-export async function signOut(): Promise<void> {
-  await supabase.auth.signOut();
-}
+import { getRepository } from "./repository";
+export async function signInWithPassword(username: string, password: string): Promise<void> { await (await getRepository()).signInWithPassword(username, password); }
+export async function signInWithGoogle(): Promise<void> { await (await getRepository()).signInWithGoogle(); }
+export async function signOut(): Promise<void> { await (await getRepository()).signOut(); }

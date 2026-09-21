@@ -1,2 +1,1 @@
-import { initializePage } from "../../shared-page";
-initializePage();
+import "../../../bootstrap";

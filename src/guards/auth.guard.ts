@@ -1,3 +1,2 @@
-export async function requireSession(): Promise<void> {
-  // TODO: ตรวจ Supabase session และ redirect ไปหน้า login
-}
+import type { Repository, UserRow } from "../types/models";
+export async function requireSession(repo: Repository): Promise<UserRow | null> { return repo.currentUser(); }

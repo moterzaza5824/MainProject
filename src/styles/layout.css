@@ -1,3 +1,0 @@
-.app-layout { min-height: 100vh; }
-.sidebar-collapsed { --sidebar-width: var(--sidebar-collapsed-width); }
-@media (max-width: 820px) { :root { --sidebar-width: 0rem; } }

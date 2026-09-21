@@ -1,17 +1,14 @@
-:root {
-  --color-primary: #078a54;
-  --color-primary-hover: #05663e;
-  --color-primary-light: #dcfce7;
-  --color-black: #0c120f;
-  --color-background: #f3f6f4;
-  --color-surface: #ffffff;
-  --color-border: #d7e0da;
-  --color-text-primary: #101713;
-  --color-text-secondary: #46534c;
-  --color-text-muted: #76827b;
-  --navbar-height: 4rem;
-  --sidebar-width: 15rem;
-  --sidebar-collapsed-width: 4.5rem;
-  --radius-control: 0.5rem;
-  --radius-card: 0.75rem;
+:root{
+  font-family:"Plus Jakarta Sans","Noto Sans Thai",sans-serif;
+  color:#18241e;
+  background:#f5f7f6;
+  font-synthesis:none;
+  --green:#087b4e;
+  --green-light:#e7f5ed;
+  --ink:#111d17;
+  --muted:#65756b;
+  --border:#dfe7e1;
+  --nav:246px;
+  --top:76px;
+  --white:#fff
 }

@@ -1,3 +1,2 @@
-export async function requireAdmin(): Promise<void> {
-  // TODO: ตรวจ role=admin และปฏิเสธเส้นทาง /admin/*
-}
+import type { UserRow } from "../types/models";
+export function requireAdmin(user: UserRow): boolean { return user.role === "admin"; }
