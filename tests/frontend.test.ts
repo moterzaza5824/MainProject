@@ -164,6 +164,12 @@ test("published news boards are separated from the student's pending request pag
   assert.equal(ctx.root.querySelector(".section-filter"),null);
   assert.doesNotMatch(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
   assert.equal(ctx.root.querySelectorAll(".badge.pending").length,0);
+  ctx.root.querySelector<HTMLButtonElement>('[data-category="all"]')!.click();await flush();
+  assert.equal(ctx.root.querySelector('[data-category="all"]')?.classList.contains("active"),true);
+  assert.match(ctx.root.textContent!,/เตรียมตัวสอบกลางภาค/);
+  assert.match(ctx.root.textContent!,/ชวนทบทวน Database/);
+  assert.doesNotMatch(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
+  assert.ok(ctx.root.querySelector(".badge.official"));assert.ok(ctx.root.querySelector(".badge.general"));
   renderPosts(ctx,"requests");await flush();
   assert.match(ctx.root.textContent!,/คำขอประกาศของฉัน/);
   assert.match(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
