@@ -181,7 +181,7 @@ test("post cards lead with the author, keep context at the top, and place images
   const post={...createSeed().posts.find(p=>p.post_id==="official-lab")!,created_at:"2026-09-21T04:35:00.000Z"};
   document.querySelector("#app")!.innerHTML=postCard({...post,image_url:"https://example.com/announcement.jpg"});
   const card=document.querySelector<HTMLElement>(".post-card")!,children=[...card.children];
-  const author=card.querySelector(".post-card-head .author")!,title=card.querySelector("h2")!,copy=card.querySelector(":scope > p")!,image=card.querySelector(".post-card-image")!;
+  const author=card.querySelector(".post-card-head .author")!,title=card.querySelector("h2")!,copy=card.querySelector(".post-card-copy")!,image=card.querySelector(".post-card-image")!;
   assert.ok(author.textContent!.includes(post.author_name));
   const timestamp=author.querySelectorAll("small");
   assert.equal(timestamp[0].textContent,formatDate(post.created_at,false));
@@ -199,14 +199,19 @@ test("post cards lead with the author, keep context at the top, and place images
   assert.match(document.querySelector(".post-card-flags")!.textContent!,/ทุก Sec/);
 });
 
-test("clicking a feed image opens a full-image viewer", async () => {
-  const ctx=await context(),raw=JSON.parse(localStorage.getItem("se68-demo-data-v1")!);
-  raw.posts=raw.posts.map((post:any)=>post.category==="general"?{...post,image_url:"https://example.com/tall-poster.jpg"}:post);
+test("long post copy expands and feed images open with post details", async () => {
+  const ctx=await context(),raw=JSON.parse(localStorage.getItem("se68-demo-data-v1")!),longContent="รายละเอียดข่าวสารที่ควรอ่านให้ครบก่อนเข้าร่วมกิจกรรม ".repeat(12);
+  raw.posts=raw.posts.map((post:any)=>post.category==="general"?{...post,content:longContent,image_url:"https://example.com/tall-poster.jpg"}:post);
   localStorage.setItem("se68-demo-data-v1",JSON.stringify(raw));
   renderPosts(ctx,"general");await flush();
-  ctx.root.querySelector<HTMLButtonElement>("[data-image-url]")!.click();
+  const summary=ctx.root.querySelector<HTMLElement>("[data-post-summary]")!,full=ctx.root.querySelector<HTMLElement>("[data-post-full]")!,toggle=ctx.root.querySelector<HTMLButtonElement>("[data-expand-post]")!;
+  assert.ok(summary.textContent!.length<longContent.length);assert.equal(full.hidden,true);assert.equal(toggle.textContent,"ดูเพิ่มเติม");
+  toggle.click();assert.equal(summary.hidden,true);assert.equal(full.hidden,false);assert.equal(toggle.getAttribute("aria-expanded"),"true");assert.equal(toggle.textContent,"ย่อ");
+  toggle.click();assert.equal(summary.hidden,false);assert.equal(full.hidden,true);assert.equal(toggle.getAttribute("aria-expanded"),"false");
+  ctx.root.querySelector<HTMLButtonElement>("[data-image-post]")!.click();
   const viewer=document.querySelector<HTMLDialogElement>("dialog.image-viewer")!;
   assert.ok(viewer);assert.equal(viewer.open,true);
+  assert.ok(viewer.querySelector(".image-viewer-layout"));assert.ok(viewer.querySelector(".image-viewer-stage"));assert.match(viewer.querySelector(".image-viewer-info")!.textContent!,/รายละเอียดข่าวสารที่ควรอ่านให้ครบ/);
   assert.equal(viewer.querySelector<HTMLImageElement>(".image-viewer-image")!.src,"https://example.com/tall-poster.jpg");
   viewer.close();
 });
