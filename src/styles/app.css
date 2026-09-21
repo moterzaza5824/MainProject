@@ -216,8 +216,18 @@ label>input,label>select,label>textarea{margin-top:7px}
 .badge.pin{color:#b4232e;background:#ffebe9;border-color:#f4aaa5}
 .badge.subject{color:#96580a;background:#fff2da;border-color:#f2d39c}
 .badge.audience{color:#aa3436;background:#fff0ef;border-color:#f0bfba}
-.post-card-image{display:block;width:100%;max-height:520px;object-fit:cover;border-radius:10px;margin:0 0 20px;background:#eef3f0}
-.post-detail-image{display:block;width:100%;max-height:720px;object-fit:contain;border-radius:11px;margin:24px 0 0;background:#101713}
+.post-image-button{position:relative;display:block;width:100%;padding:0;border:0;border-radius:10px;background:#101713;overflow:hidden;cursor:zoom-in;text-align:center;margin:0 0 20px}
+.prose+.post-image-button{margin-top:24px}
+.post-card-image{display:block;width:100%;height:clamp(300px,45vw,520px);object-fit:cover;background:#eef3f0}
+.post-detail-image{display:block;width:100%;max-height:720px;object-fit:contain;background:#101713}
+.post-detail-image+.image-open-hint{bottom:14px}
+.image-open-hint{position:absolute;right:12px;bottom:12px;padding:7px 10px;border-radius:7px;background:#102419d9;color:#fff;font-size:12px;font-weight:600;opacity:0;transform:translateY(4px);transition:.18s}
+.post-image-button:hover .image-open-hint,.post-image-button:focus-visible .image-open-hint{opacity:1;transform:translateY(0)}
+.post-image-button:focus-visible{outline:3px solid #5fd693;outline-offset:3px}
+.image-viewer{width:min(1200px,calc(100% - 32px));max-height:92vh;background:#07100b;border-color:#21382b}
+.image-viewer .dialog-header{background:#fff}
+.image-viewer .dialog-body{display:grid;place-items:center;padding:0;background:#07100b;height:calc(92vh - 70px);overflow:auto}
+.image-viewer-image{display:block;max-width:100%;max-height:calc(92vh - 70px);width:auto;height:auto;object-fit:contain}
 .post-card h2{font-size:19px;line-height:1.65;margin:14px 0 8px}
 .post-card h2 a{color:var(--ink)}
 .post-card>p{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:24px}

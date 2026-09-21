@@ -178,7 +178,8 @@ test("post cards lead with the author, keep context at the top, and place images
   const author=card.querySelector(".post-card-head .author")!,title=card.querySelector("h2")!,copy=card.querySelector(":scope > p")!,image=card.querySelector(".post-card-image")!;
   assert.ok(author.textContent!.includes(post.author_name));
   assert.ok(children.indexOf(author.closest(".post-card-head")!)<children.indexOf(title));
-  assert.ok(children.indexOf(copy)<children.indexOf(image));
+  assert.ok(children.indexOf(copy)<children.indexOf(image.closest(".post-image-button")!));
+  assert.equal(image.closest("button")?.getAttribute("aria-label"),`เปิดดูภาพเต็มของ ${post.title}`);
   const flags=document.querySelector(".post-card-flags")!;
   assert.match(flags.textContent!,/Object-Oriented Programming/);
   assert.match(flags.textContent!,/Sec 1/);
@@ -186,6 +187,18 @@ test("post cards lead with the author, keep context at the top, and place images
   document.querySelector("#app")!.innerHTML=postCard(createSeed().posts.find(p=>p.is_pinned)!);
   assert.ok(document.querySelector(".post-card-flags .badge.pin"));
   assert.match(document.querySelector(".post-card-flags")!.textContent!,/ทุก Sec/);
+});
+
+test("clicking a feed image opens a full-image viewer", async () => {
+  const ctx=await context(),raw=JSON.parse(localStorage.getItem("se68-demo-data-v1")!);
+  raw.posts=raw.posts.map((post:any)=>post.category==="general"?{...post,image_url:"https://example.com/tall-poster.jpg"}:post);
+  localStorage.setItem("se68-demo-data-v1",JSON.stringify(raw));
+  renderPosts(ctx,"general");await flush();
+  ctx.root.querySelector<HTMLButtonElement>("[data-image-url]")!.click();
+  const viewer=document.querySelector<HTMLDialogElement>("dialog.image-viewer")!;
+  assert.ok(viewer);assert.equal(viewer.open,true);
+  assert.equal(viewer.querySelector<HTMLImageElement>(".image-viewer-image")!.src,"https://example.com/tall-poster.jpg");
+  viewer.close();
 });
 
 test("announcement form keeps general targeting optional and requires course-aware targeting for official news", async () => {
