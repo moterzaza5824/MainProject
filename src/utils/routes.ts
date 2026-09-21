@@ -4,7 +4,8 @@ export const routes = {
   postDetail: "/pages/posts/detail/", assignments: "/pages/assignments/", assignmentDetail: "/pages/assignments/detail/",
   calendar: "/pages/calendar/", profile: "/pages/profile/", admin: "/pages/admin/dashboard/",
   approvals: "/pages/admin/approvals/", adminPosts: "/pages/admin/posts/", adminPostForm: "/pages/admin/posts/form/",
-  adminAssignments: "/pages/admin/assignments/", assignmentForm: "/pages/admin/assignments/form/"
+  adminAssignments: "/pages/admin/assignments/", assignmentForm: "/pages/admin/assignments/form/",
+  adminCatalog: "/pages/admin/catalog/"
 } as const;
 export type RouteName = keyof typeof routes;
 export function href(route: RouteName, id?: string): string {

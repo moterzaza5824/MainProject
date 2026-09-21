@@ -183,6 +183,15 @@ label>input,label>select,label>textarea{margin-top:7px}
 .field small{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:6px}
 .form-footer{display:flex;justify-content:flex-end;gap:10px;padding-top:24px}
 .form-error{padding:12px 15px;background:#fff0ef;color:#a42d38;border:1px solid #f0bfc1;border-radius:8px;font-size:14px;margin-bottom:16px}
+.catalog-layout{display:grid;grid-template-columns:minmax(320px,.8fr) minmax(0,1.2fr);gap:24px;align-items:start}
+.catalog-editor{position:sticky;top:96px}
+.catalog-editor>h2{margin:0 0 6px}.catalog-kind{margin:24px 0}
+.catalog-lists{display:grid;gap:20px}
+.catalog-items{display:grid;gap:10px}
+.catalog-item{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:#fbfdfc}
+.catalog-item strong,.catalog-item span{display:block}.catalog-item strong{font-size:14px}.catalog-item span{font-size:12px;color:var(--muted);margin-top:4px}
+.catalog-item>b{flex:0 0 auto;color:var(--green);background:#e8f5ed;padding:6px 10px;border-radius:7px;font-size:12px}
+.catalog-lists .panel-title>span{font-size:12px;color:var(--muted)}
 .check-label{display:flex;align-items:center;gap:10px;font-weight:400;font-size:14px}
 .attachment-row{display:grid;grid-template-columns:1fr 1.6fr 40px;gap:10px;margin-bottom:10px;align-items:end}
 .attachment-row label{font-size:12px}
@@ -277,6 +286,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 }
 
 @media(max-width:1200px){.top-context{display:none}
+.catalog-layout{grid-template-columns:1fr}.catalog-editor{position:static}
 .filter-panel{flex-wrap:wrap}
 .filter-panel>.section-filter,.filter-panel>label{flex-basis:calc(50% - 18px)}
 .dashboard-grid{grid-template-columns:1fr}

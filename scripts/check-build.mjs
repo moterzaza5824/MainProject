@@ -11,7 +11,7 @@ async function walk(dir) {
   return result;
 }
 const html=(await walk(root)).filter(p=>p.endsWith(".html"));
-if(html.length!==19)throw new Error("Expected 19 HTML entries; got "+html.length);
+if(html.length!==20)throw new Error("Expected 20 HTML entries; got "+html.length);
 for(const file of html){
   const text=await readFile(file,"utf8");
   if(!text.includes('lang="th"')||!text.includes("<title>"))throw new Error("Missing metadata: "+file);
@@ -21,4 +21,4 @@ for(const file of html){
     await access(target);
   }
 }
-console.log("Validated 19 HTML entries and all their local asset references.");
+console.log("Validated "+html.length+" HTML entries and all their local asset references.");

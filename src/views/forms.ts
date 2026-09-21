@@ -8,6 +8,7 @@ import { dialog, empty } from "../ui/primitives";
 import { icon } from "../ui/icons";
 import { validateAssignment, validatePost } from "../services/repository";
 import { guardDirty } from "../utils/dirty-form";
+import { loadCatalog } from "../services/catalog";
 function errorIn(form:HTMLFormElement,error:unknown){
   const element=form.querySelector<HTMLElement>("[data-error]")!;
   element.hidden=false;element.textContent=error instanceof Error?error.message:"ไม่สามารถบันทึกได้ กรุณาลองใหม่";element.focus();
@@ -43,11 +44,22 @@ export function renderPostForm(ctx:Context){
 export function renderAssignmentForm(ctx:Context){
   const id=new URLSearchParams(location.search).get("id")??undefined,task=ctx.data.assignments.find(a=>a.assignment_id===id);
   if(id&&!task){ctx.root.innerHTML=empty("ไม่พบงานนี้","กลับไปหน้าจัดการงานเพื่อเลือกรายการอีกครั้ง");return;}
-  ctx.root.innerHTML=heading(id?"แก้ไขงาน":"เพิ่มงานและการบ้าน","กำหนดรายละเอียดและเวลาส่งให้ตรงกับแต่ละกลุ่มเรียน","ASSIGNMENT EDITOR",'<a class="button" href="'+href("adminAssignments")+'">'+icon("left")+' จัดการงาน</a>')+
-  `<form class="panel form-panel" id="assignment-form"><div class="form-error" data-error role="alert" tabindex="-1" hidden></div><section class="form-section"><h2>รายละเอียดงาน</h2><div class="form-row"><label class="field">รายวิชา *<input name="subject" required maxlength="120" value="${e(task?.subject_name??"")}" placeholder="Object-Oriented Programming"></label><label class="field">ช่องทางส่งงาน *<input name="channel" required maxlength="120" value="${e(task?.submission_channel??"")}" placeholder="Microsoft Teams"></label></div><label class="field">ชื่องาน *<input name="title" required maxlength="160" value="${e(task?.title??"")}" placeholder="Lab 4: Inheritance"></label><label class="field">คำอธิบาย *<textarea name="description" required maxlength="10000" rows="7">${e(task?.description??"")}</textarea></label></section>
+  const catalog=loadCatalog(ctx.data.assignments);
+  const selectedSubject=catalog.subjects.find(row=>row.name===task?.subject_name)?.id??(task?"legacy-subject":"");
+  const selectedChannel=catalog.channels.find(row=>row.name===task?.submission_channel)?.id??(task?"legacy-channel":"");
+  const subjectOptions=(task&&selectedSubject==="legacy-subject"?'<option value="legacy-subject" selected>'+e(task.subject_name)+' · ข้อมูลเดิม</option>':"")+catalog.subjects.map(row=>`<option value="${e(row.id)}" ${row.id===selectedSubject?"selected":""}>${e(row.name)} · ปีการศึกษา ${row.academicYear} · ${row.sectionCount} Sec</option>`).join("");
+  const channelOptions=(task&&selectedChannel==="legacy-channel"?'<option value="legacy-channel" selected>'+e(task.submission_channel)+' · ข้อมูลเดิม</option>':"")+catalog.channels.map(row=>`<option value="${e(row.id)}" ${row.id===selectedChannel?"selected":""}>${e(row.name)}</option>`).join("");
+  const missing=!catalog.subjects.length||!catalog.channels.length;
+  ctx.root.innerHTML=heading(id?"แก้ไขงาน":"เพิ่มงานและการบ้าน","เลือกรายวิชาและช่องทางส่งจากข้อมูลพื้นฐาน แล้วกำหนดรายละเอียดของงาน","ASSIGNMENT EDITOR",'<div class="actions"><a class="button" href="'+href("adminAssignments")+'">'+icon("left")+' จัดการงาน</a><a class="button" href="'+href("adminCatalog")+'">'+icon("book")+' ข้อมูลพื้นฐาน</a></div>')+
+  `<form class="panel form-panel" id="assignment-form"><div class="form-error" data-error role="alert" tabindex="-1" hidden></div>
+  ${missing?'<div class="info-box">ต้องเพิ่มรายวิชาและช่องทางส่งงานให้ครบก่อนสร้างงานใหม่ <a href="'+href("adminCatalog")+'">ไปที่ข้อมูลพื้นฐาน</a></div>':""}
+  <section class="form-section"><h2>รายละเอียดงาน</h2><div class="form-row"><label class="field">รายวิชา *<select name="subject_id" required><option value="">เลือกรายวิชา</option>${subjectOptions}</select><small id="subject-summary">เลือกรายวิชาที่เพิ่มไว้ในหน้าข้อมูลพื้นฐาน</small></label><label class="field">ช่องทางส่งงาน *<select name="channel_id" required><option value="">เลือกช่องทางส่งงาน</option>${channelOptions}</select><small>หากยังไม่มีตัวเลือก ให้เพิ่มในหน้าข้อมูลพื้นฐานก่อน</small></label></div><label class="field">ชื่องาน *<input name="title" required maxlength="160" value="${e(task?.title??"")}" placeholder="Lab 4: Inheritance"></label><label class="field">คำอธิบาย *<textarea name="description" required maxlength="10000" rows="7">${e(task?.description??"")}</textarea></label></section>
   <section class="form-section"><h2>กำหนดส่ง</h2><label class="field">รูปแบบกำหนดส่ง<select name="mode"><option value="UNIFIED" ${task?.schedule_mode!=="SPLIT"?"selected":""}>รวมทั้งรุ่น (UNIFIED)</option><option value="SPLIT" ${task?.schedule_mode==="SPLIT"?"selected":""}>แยกกลุ่มเรียน (SPLIT)</option></select></label><div id="unified-fields"><label class="field">กำหนดส่งทั้งรุ่น *<input name="all" type="datetime-local" value="${e(thaiInput(task?.due_dates.all))}"></label></div><div id="split-fields" class="form-row"><label class="field">Sec 1<input name="sec_1" type="datetime-local" value="${e(thaiInput(task?.due_dates.sec_1))}"><small>เว้นว่างถ้างานไม่เกี่ยวข้องกับ Sec 1</small></label><label class="field">Sec 2<input name="sec_2" type="datetime-local" value="${e(thaiInput(task?.due_dates.sec_2))}"><small>เว้นว่างถ้างานไม่เกี่ยวข้องกับ Sec 2</small></label></div><p class="note-hint">ทุกเวลาที่กรอกเป็นเวลาไทย (UTC+7) · SPLIT ต้องมีวันส่งอย่างน้อยหนึ่งกลุ่มเรียน</p></section>
   <section class="form-section"><h2>ลิงก์โจทย์และทรัพยากร</h2><label class="field">URL เอกสาร<textarea name="resources" rows="3" placeholder="https://…\nหนึ่งลิงก์ต่อหนึ่งบรรทัด">${e(task?.resources.join("\n")??"")}</textarea><small>ใช้ลิงก์ภายนอกแทนการอัปโหลดไฟล์</small></label></section><div class="form-footer"><a class="button" href="${href("adminAssignments")}">ยกเลิก</a><button class="button primary" type="submit">${icon("check")} ${id?"บันทึกการแก้ไข":"เพิ่มงาน"}</button></div></form>`;
   const form=ctx.root.querySelector<HTMLFormElement>("#assignment-form")!,clearDirty=guardDirty(form);
+  const subjectSelect=form.elements.namedItem("subject_id") as HTMLSelectElement;
+  const updateSubjectSummary=()=>{const row=catalog.subjects.find(item=>item.id===subjectSelect.value);form.querySelector("#subject-summary")!.textContent=row?`ปีการศึกษา ${row.academicYear} · ${row.sectionCount} Sec`:"เลือกรายวิชาที่เพิ่มไว้ในหน้าข้อมูลพื้นฐาน";};
+  subjectSelect.onchange=updateSubjectSummary;updateSubjectSummary();
   const toggle=()=>{
     const unified=(form.elements.namedItem("mode") as HTMLSelectElement).value==="UNIFIED";
     form.querySelector<HTMLElement>("#unified-fields")!.hidden=!unified;form.querySelector<HTMLElement>("#split-fields")!.hidden=unified;
@@ -58,8 +70,11 @@ export function renderAssignmentForm(ctx:Context){
     event.preventDefault();const button=form.querySelector<HTMLButtonElement>("[type=submit]")!;if(button.disabled)return;button.disabled=true;
     try{
       const fd=new FormData(form),mode=fd.get("mode") as AssignmentInput["schedule_mode"],dates:AssignmentInput["due_dates"]={};
+      const subject=catalog.subjects.find(row=>row.id===String(fd.get("subject_id"))),channel=catalog.channels.find(row=>row.id===String(fd.get("channel_id")));
+      const subjectName=subject?.name??(fd.get("subject_id")==="legacy-subject"?task?.subject_name:""),channelName=channel?.name??(fd.get("channel_id")==="legacy-channel"?task?.submission_channel:"");
+      if(!subjectName||!channelName)throw new Error("กรุณาเลือกรายวิชาและช่องทางส่งงานจากข้อมูลพื้นฐาน");
       for(const key of(mode==="UNIFIED"?["all"]:["sec_1","sec_2"]) as (keyof AssignmentInput["due_dates"])[]){const value=String(fd.get(key)??"");if(value)dates[key]=fromThaiInput(value);}
-      const input:AssignmentInput={subject_name:String(fd.get("subject")).trim(),title:String(fd.get("title")).trim(),description:String(fd.get("description")).trim(),submission_channel:String(fd.get("channel")).trim(),schedule_mode:mode,due_dates:dates,resources:String(fd.get("resources")).split("\n").map(s=>s.trim()).filter(Boolean)};
+      const input:AssignmentInput={subject_name:subjectName,title:String(fd.get("title")).trim(),description:String(fd.get("description")).trim(),submission_channel:channelName,schedule_mode:mode,due_dates:dates,resources:String(fd.get("resources")).split("\n").map(s=>s.trim()).filter(Boolean)};
       validateAssignment(input);const saved=await ctx.repo.saveAssignment(input,id);clearDirty();navigate("assignmentDetail",saved.assignment_id);
     }catch(error){errorIn(form,error);button.disabled=false;}
   };

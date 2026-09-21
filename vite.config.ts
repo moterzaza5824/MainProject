@@ -31,7 +31,8 @@ export default defineConfig({
         adminDashboard: page("admin/dashboard"),
         adminApprovals: page("admin/approvals"),
         adminPosts: page("admin/posts"),
-        adminAssignments: page("admin/assignments")
+        adminAssignments: page("admin/assignments"),
+        adminCatalog: page("admin/catalog")
       }
     }
   }

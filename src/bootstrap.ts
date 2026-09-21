@@ -9,6 +9,7 @@ import { renderDashboard, renderAdminTasks, renderProfile } from "./views/overvi
 import { renderTasks, renderTaskDetail } from "./views/tasks";
 import { renderPostDetail, renderPosts } from "./views/posts";
 import { renderAssignmentForm, renderPostForm } from "./views/forms";
+import { renderCatalog } from "./views/catalog";
 async function bootstrap() {
   const root=document.querySelector<HTMLElement>("#app")!;
   root.innerHTML='<div class="loading" role="status">กำลังเตรียมพื้นที่ของคุณ…</div>';
@@ -23,7 +24,7 @@ async function bootstrap() {
       renderAuth(root,repo);return;
     }
     if(!user){location.replace(href("login"));return;}
-    const isAdmin=["admin","approvals","adminPosts","adminPostForm","adminAssignments","assignmentForm"].includes(route);
+    const isAdmin=["admin","approvals","adminPosts","adminPostForm","adminAssignments","assignmentForm","adminCatalog"].includes(route);
     if(isAdmin&&user.role!=="admin"){location.replace(href("denied"));return;}
     let active=route==="assignmentDetail"?"assignments":route==="postDetail"?"official":route==="postForm"?"general":route==="adminPostForm"?"adminPosts":route==="assignmentForm"?"adminAssignments":route;
     const content=mountShell(user,active,repo);
@@ -58,6 +59,7 @@ async function bootstrap() {
         case "postForm":case "adminPostForm":renderPostForm(ctx);break;
         case "assignmentForm":renderAssignmentForm(ctx);break;
         case "adminAssignments":renderAdminTasks(ctx);break;
+        case "adminCatalog":renderCatalog(ctx);break;
         case "profile":renderProfile(ctx);break;
       }
     } catch(error){renderFailure(content,error);}

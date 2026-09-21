@@ -10,6 +10,7 @@ import { renderPosts, renderPostDetail, postCard } from "../src/views/posts";
 import { renderPostForm, renderAssignmentForm } from "../src/views/forms";
 import { renderDashboard, renderProfile, renderAdminTasks } from "../src/views/overview";
 import { renderAuth } from "../src/views/auth";
+import { renderCatalog } from "../src/views/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
 import type { PostInput, AssignmentInput, ProgressRow } from "../src/types/models";
@@ -243,10 +244,28 @@ test("assignment editor toggles and disables hidden schedule inputs", async () =
   assert.equal((form.elements.namedItem("all") as HTMLInputElement).disabled,true);
 });
 
+test("master data page adds subject and channel choices used by the assignment form", async () => {
+  const ctx=await context("admin");renderCatalog(ctx);
+  const kind=ctx.root.querySelector<HTMLSelectElement>("#catalog-kind")!;
+  const subjectForm=ctx.root.querySelector<HTMLFormElement>("#subject-catalog-form")!;
+  (subjectForm.elements.namedItem("name") as HTMLInputElement).value="Discrete Mathematics";
+  (subjectForm.elements.namedItem("academic_year") as HTMLInputElement).value="2569";
+  (subjectForm.elements.namedItem("section_count") as HTMLInputElement).value="3";
+  subjectForm.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
+  kind.value="channel";kind.dispatchEvent(new Event("change",{bubbles:true}));
+  const channelForm=ctx.root.querySelector<HTMLFormElement>("#channel-catalog-form")!;
+  assert.equal(channelForm.hidden,false);
+  (channelForm.elements.namedItem("name") as HTMLInputElement).value="Moodle";
+  channelForm.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
+  renderAssignmentForm(ctx);
+  assert.match((ctx.root.querySelector('[name="subject_id"]') as HTMLSelectElement).textContent!,/Discrete Mathematics · ปีการศึกษา 2569 · 3 Sec/);
+  assert.match((ctx.root.querySelector('[name="channel_id"]') as HTMLSelectElement).textContent!,/Moodle/);
+});
+
 test("all page renderers provide content for both roles and missing records", async () => {
   for(const role of ["student","admin"] as const){
     const ctx=await context(role);
-    for(const render of [renderDashboard,renderProfile,renderPostForm,renderAdminTasks]){
+    for(const render of [renderDashboard,renderProfile,renderPostForm,renderAdminTasks,...(role==="admin"?[renderCatalog]:[])]){
       render(ctx);assert.ok(ctx.root.querySelector("h1"));
     }
     renderAuth(ctx.root,repo);assert.ok(ctx.root.querySelector("#login-form"));assert.ok(ctx.root.querySelector("#google-login"));
