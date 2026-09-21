@@ -26,7 +26,7 @@ async function bootstrap() {
     if(!user){location.replace(href("login"));return;}
     const isAdmin=["admin","approvals","adminPosts","adminPostForm","adminAssignments","assignmentForm","adminCatalog"].includes(route);
     if(isAdmin&&user.role!=="admin"){location.replace(href("denied"));return;}
-    let active=route==="assignmentDetail"?"assignments":route==="postDetail"?"official":route==="postForm"?"general":route==="adminPostForm"?"adminPosts":route==="assignmentForm"?"adminAssignments":route;
+    let active=route==="assignmentDetail"?"assignments":route==="postDetail"||route==="postForm"||route==="general"?"official":route==="adminPostForm"?"adminPosts":route==="assignmentForm"?"adminAssignments":route;
     const content=mountShell(user,active,repo);
     try {
       const data=await repo.snapshot();
@@ -38,7 +38,7 @@ async function bootstrap() {
       const selectedPost=data.posts.find(p=>p.post_id===postId);
       const reviewerName=selectedPost?.approved_by ? await repo.getReviewerName(selectedPost.approved_by) : null;
       if(route==="postDetail" && selectedPost) {
-        active=selectedPost.status!=="published"&&selectedPost.author_id===user.uid&&user.role==="student"?"requests":selectedPost.category==="general"?"general":"official";
+        active=selectedPost.status!=="published"&&selectedPost.author_id===user.uid&&user.role==="student"?"requests":"official";
         document.querySelectorAll("#sidebar-nav a").forEach(link=>{
           if(link.getAttribute("href")===href(active))link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
         });

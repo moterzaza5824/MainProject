@@ -10,14 +10,14 @@ export const postStatusLabel = (p: PostRow) => ({published:"เผยแพร�
 export function postCard(post: PostRow) {
   return `<article class="post-card ${post.is_pinned?"pinned":""}"><div class="post-card-head"><div class="post-card-kind">${badge(post.category==="official"?"ประกาศทางการ":"ข่าวทั่วไป",post.category)}${post.status!=="published"?badge(postStatusLabel(post),post.status):""}</div>${post.is_pinned?'<div class="post-card-flags" aria-label="สถานะปักหมุด">'+badge("ปักหมุด","pin")+"</div>":""}</div><h2><a href="${href("postDetail",post.post_id)}">${e(post.title)}</a></h2><p>${e(post.content.replace(/[#*]/g,"").slice(0,150))}${post.content.length>150?"…":""}</p><div class="post-card-footer"><span class="author"><span class="avatar">${e(post.author_name.slice(0,1))}</span><span>${e(post.author_name)}<br><small>${e(formatDate(post.created_at,false))}</small></span></span><a href="${href("postDetail",post.post_id)}" aria-label="อ่าน ${e(post.title)}">${icon("arrow")}</a></div></article>`;
 }
-export function renderPosts(ctx: Context, category: "official" | "general" | "requests" | "admin" | "approvals") {
-  const admin = category==="admin", approval=category==="approvals", requests=category==="requests";
-  let own=false, page=1, tab="pending";
+export function renderPosts(ctx: Context, initialCategory: "official" | "general" | "requests" | "admin" | "approvals") {
+  const admin = initialCategory==="admin", approval=initialCategory==="approvals", requests=initialCategory==="requests";
+  let boardCategory:"official"|"general"=initialCategory==="general"?"general":"official", own=false, page=1, tab="pending";
   let currentRows: PostRow[] = [], request = 0;
   const formRoute=ctx.user.role==="admin"?"adminPostForm":"postForm";
-  ctx.root.innerHTML=heading(requests?"คำขอประกาศของฉัน":approval?"อนุมัติประกาศ":admin?"จัดการประกาศ":category==="official"?"ประกาศทางการ":"ประกาศทั่วไป",requests?"ติดตามคำขอประกาศทางการ โดยไม่ปะปนกับข่าวที่เผยแพร่แล้ว":approval?"ตรวจสอบคำขอ ก่อนเผยแพร่ข่าวสำคัญให้เพื่อนร่วมรุ่น":admin?"จัดการเนื้อหา สถานะ และประกาศที่ปักหมุด":"อัปเดตข่าวสารและเรื่องราวที่เกี่ยวข้องกับการเรียน",requests?"MY ANNOUNCEMENT REQUESTS":approval?"APPROVAL WORKFLOW":admin?"CONTENT MANAGEMENT":"COMMUNITY BOARD",
-  '<a class="button primary" href="'+href(formRoute)+'">'+icon("plus")+' สร้างประกาศ</a>')+
-  (requests?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="rejected">ไม่อนุมัติ</button></div>':approval?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="processed">ดำเนินการแล้ว</button></div>':admin?"":'<div class="tabs"><a class="'+(category==="official"?"active":"")+'" href="'+href("official")+'">ประกาศทางการ</a><a class="'+(category==="general"?"active":"")+'" href="'+href("general")+'">ประกาศทั่วไป</a></div>')+
+  ctx.root.innerHTML=heading(requests?"คำขอประกาศของฉัน":approval?"อนุมัติประกาศ":admin?"จัดการประกาศ":"ข่าวสาร",requests?"ติดตามคำขอประกาศทางการ โดยไม่ปะปนกับข่าวที่เผยแพร่แล้ว":approval?"ตรวจสอบคำขอ ก่อนเผยแพร่ข่าวสำคัญให้เพื่อนร่วมรุ่น":admin?"จัดการเนื้อหา สถานะ และประกาศที่ปักหมุด":"เลือกดูประกาศสำคัญและข่าวสารทั่วไปของรุ่นได้ในหน้าเดียว",requests?"MY ANNOUNCEMENT REQUESTS":approval?"APPROVAL WORKFLOW":admin?"CONTENT MANAGEMENT":"NEWS & ANNOUNCEMENTS",
+  '<a class="button primary" href="'+href(formRoute)+'">'+icon("plus")+' สร้างโพสต์</a>')+
+  (requests?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="rejected">ไม่อนุมัติ</button></div>':approval?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="processed">ดำเนินการแล้ว</button></div>':admin?"":'<div class="tabs"><button class="'+(boardCategory==="official"?"active":"")+'" data-category="official">ประกาศทางการ</button><button class="'+(boardCategory==="general"?"active":"")+'" data-category="general">ประกาศทั่วไป</button></div>')+
   (admin?'<div class="filter-panel"><label>แสดงรายการ<select id="post-owner"><option value="all">ทั้งหมด</option><option value="mine">ประกาศของฉัน</option></select></label></div>':"")+'<div id="posts-results"></div>';
   const results=ctx.root.querySelector<HTMLElement>("#posts-results")!;
   const ownerSelect=ctx.root.querySelector<HTMLSelectElement>("#post-owner");
@@ -27,7 +27,7 @@ export function renderPosts(ctx: Context, category: "official" | "general" | "re
     results.innerHTML='<div class="loading" role="status">กำลังโหลดประกาศ…</div>';
     try {
     const result=await ctx.repo.listPosts({own:requests?true:own||undefined,page,pageSize:10,
-      ...(requests?{category:"official" as const,status:tab as "pending"|"rejected"}:approval?(tab==="pending"?{status:"pending" as const}:{processed:true}):!admin?{category:category as "official"|"general",status:"published" as const}:{})});
+      ...(requests?{category:"official" as const,status:tab as "pending"|"rejected"}:approval?(tab==="pending"?{status:"pending" as const}:{processed:true}):!admin?{category:boardCategory,status:"published" as const}:{})});
     if(token!==request)return;
     const pages=Math.max(1,Math.ceil(result.total/10));
     if(page>pages){page=pages;await render();return;}
@@ -43,6 +43,7 @@ export function renderPosts(ctx: Context, category: "official" | "general" | "re
   ctx.root.querySelector<HTMLSelectElement>("#post-owner")?.addEventListener("change",event=>{own=(event.target as HTMLSelectElement).value==="mine";page=1;render();});
   ctx.root.addEventListener("click",event=>{
     const b=(event.target as Element).closest<HTMLButtonElement>("button");if(!b)return;
+    if(b.dataset.category){boardCategory=b.dataset.category as "official"|"general";page=1;ctx.root.querySelectorAll("[data-category]").forEach(el=>el.classList.toggle("active",el===b));render();}
     if(b.dataset.tab){tab=b.dataset.tab;page=1;ctx.root.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("active",el===b));render();}
     if(b.dataset.page){page+=Number(b.dataset.page);render();}
     if(b.hasAttribute("data-retry"))void render();

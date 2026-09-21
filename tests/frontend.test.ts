@@ -151,7 +151,11 @@ test("post board fetches paginated repository rows rather than dashboard subset"
 
 test("published news boards are separated from the student's pending request page", async () => {
   const ctx=await context("student");
-  renderPosts(ctx,"general");await flush();
+  renderPosts(ctx,"official");await flush();
+  assert.match(ctx.root.querySelector("h1")!.textContent!,/ข่าวสาร/);
+  assert.equal(ctx.root.querySelector('[data-category="official"]')?.classList.contains("active"),true);
+  ctx.root.querySelector<HTMLButtonElement>('[data-category="general"]')!.click();await flush();
+  assert.equal(ctx.root.querySelector('[data-category="general"]')?.classList.contains("active"),true);
   assert.equal(ctx.root.querySelector("#post-owner"),null);
   assert.equal(ctx.root.querySelector(".section-filter"),null);
   assert.doesNotMatch(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
@@ -289,6 +293,11 @@ test("student dashboard prioritizes 24-hour and overdue work instead of progress
 
 test("sidebar collapse preference persists and active menu is correct", async () => {
   const ctx=await context();
+  mountShell(ctx.user,"official",repo);
+  const newsLink=document.querySelector<HTMLAnchorElement>('a[href="/pages/posts/official/"]')!;
+  assert.match(newsLink.textContent!,/ข่าวสาร/);
+  assert.equal(document.querySelector('a[href="/pages/posts/general/"]'),null);
+  assert.equal(newsLink.getAttribute("aria-current"),"page");
   mountShell(ctx.user,"assignments",repo);
   assert.match(document.querySelector('[aria-current="page"]')!.textContent!,/งานและการบ้าน/);
   assert.ok(document.querySelector('a[href="/pages/posts/requests/"]'));

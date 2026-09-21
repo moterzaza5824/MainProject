@@ -205,7 +205,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 .table .title-cell small{display:block;margin-top:4px;color:var(--muted)}
 .table td>.actions{flex-wrap:nowrap}
 .table a:not(.button){color:var(--ink)}
-.post-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.post-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
 .post-card{display:flex;flex-direction:column;padding:25px;background:#fff;border:1px solid var(--border);border-radius:14px}
 .post-card.pinned{border-color:#f2b2a9;background:#fffdfb}
 .post-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;min-height:32px}
