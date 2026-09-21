@@ -7,9 +7,14 @@ export function validatePost(input: PostInput): void {
   if (!input.title.trim() || !input.content.trim()) throw new Error("กรุณาระบุหัวข้อและเนื้อหาประกาศ");
   if (input.title.length > 160 || input.content.length > 10000) throw new Error("หัวข้อยาวได้ไม่เกิน 160 และเนื้อหาไม่เกิน 10,000 ตัวอักษร");
   if (!["official","general"].includes(input.category)) throw new Error("ประเภทประกาศไม่ถูกต้อง");
-  if (input.target_scope === "SPECIFIC" && (!input.target_sections.length || !input.target_sections.every(n => n === 1 || n === 2) || new Set(input.target_sections).size !== input.target_sections.length)) throw new Error("กรุณาเลือกกลุ่มเรียนให้ถูกต้อง");
+  const hasSubjectId=!!input.subject_id?.trim(),hasSubjectName=!!input.subject_name?.trim(),hasSubject=hasSubjectId&&hasSubjectName;
+  if (hasSubjectId!==hasSubjectName) throw new Error("ข้อมูลรายวิชาไม่ครบถ้วน กรุณาเลือกรายวิชาใหม่");
+  if (input.category === "official" && !hasSubject) throw new Error("ประกาศทางการต้องเลือกรายวิชาและกลุ่มผู้รับ");
+  if (!hasSubject && input.target_scope === "SPECIFIC") throw new Error("กรุณาเลือกรายวิชาก่อนระบุ Sec");
+  if (input.target_scope === "SPECIFIC" && (!input.target_sections.length || !input.target_sections.every(n => Number.isInteger(n) && n > 0) || new Set(input.target_sections).size !== input.target_sections.length)) throw new Error("กรุณาเลือกกลุ่มเรียนให้ถูกต้อง");
   if (input.target_scope === "ALL" && input.target_sections.length) throw new Error("ประกาศทั้งรุ่นต้องไม่ระบุกลุ่มเรียนเฉพาะ");
   if (!["ALL","SPECIFIC"].includes(input.target_scope)) throw new Error("กลุ่มเป้าหมายไม่ถูกต้อง");
+  if (input.image_url && !safeUrl(input.image_url)) throw new Error("ลิงก์รูปภาพต้องเป็น http หรือ https");
   if (input.attachments.some(a => !a.name.trim() || !safeUrl(a.url))) throw new Error("ลิงก์เอกสารต้องมีชื่อและเป็น http หรือ https");
 }
 export function validateAssignment(input: AssignmentInput): void {

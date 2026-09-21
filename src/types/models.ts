@@ -11,6 +11,7 @@ export interface Attachment { name: string; url: string }
 export interface PostRow {
   post_id: string; author_id: string; author_name: string; title: string; content: string;
   category: PostCategory; status: PostStatus; is_pinned: boolean;
+  image_url?: string | null; subject_id?: string | null; subject_name?: string | null;
   target_scope: "ALL" | "SPECIFIC"; target_sections: number[]; attachments: Attachment[];
   approved_by?: string | null; created_at: string; updated_at: string;
 }
@@ -23,7 +24,7 @@ export interface AssignmentRow {
 export interface ProgressRow {
   id: string; uid: string; assignment_id: string; status: TaskStatus; note?: string; updated_at: string;
 }
-export type PostInput = Pick<PostRow, "title" | "content" | "category" | "target_scope" | "target_sections" | "attachments" | "is_pinned">;
+export type PostInput = Pick<PostRow, "title" | "content" | "category" | "image_url" | "subject_id" | "subject_name" | "target_scope" | "target_sections" | "attachments" | "is_pinned">;
 export type AssignmentInput = Pick<AssignmentRow, "subject_name" | "title" | "description" | "submission_channel" | "schedule_mode" | "due_dates" | "resources">;
 export interface Snapshot { users: UserRow[]; posts: PostRow[]; assignments: AssignmentRow[]; progress: ProgressRow[]; post_counts?: { pending: number; published: number } }
 export interface PostQuery { category?: PostCategory; section?: Section; own?: boolean; status?: PostStatus; processed?: boolean; page?: number; pageSize?: number }

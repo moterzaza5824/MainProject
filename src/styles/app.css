@@ -177,6 +177,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 .form-section{padding:25px 0;border-bottom:1px solid var(--border)}
 .form-section:first-child{padding-top:0}
 .form-section h2{font-size:18px;margin-bottom:18px}
+.optional-label{font-size:12px;font-weight:500;color:var(--muted);margin-left:6px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .field{margin-bottom:18px}
 .field:last-child{margin:0}
@@ -212,6 +213,10 @@ label>input,label>select,label>textarea{margin-top:7px}
 .post-card-kind,.post-card-flags{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .post-card-flags{justify-content:flex-end;margin-left:auto}
 .badge.pin{color:#b4232e;background:#ffebe9;border-color:#f4aaa5}
+.badge.subject{color:#96580a;background:#fff2da;border-color:#f2d39c}
+.badge.audience{color:#aa3436;background:#fff0ef;border-color:#f0bfba}
+.post-card-image{display:block;width:100%;max-height:360px;aspect-ratio:16/7;object-fit:cover;border-radius:10px;margin:14px 0 2px;background:#eef3f0}
+.post-detail-image{display:block;width:100%;max-height:520px;object-fit:cover;border-radius:11px;margin:0 0 24px;background:#eef3f0}
 .post-card h2{font-size:19px;line-height:1.65;margin:14px 0 8px}
 .post-card h2 a{color:var(--ink)}
 .post-card>p{font-size:14px;color:var(--muted);line-height:1.8;margin-bottom:24px}

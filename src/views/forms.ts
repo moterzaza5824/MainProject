@@ -16,29 +16,57 @@ function errorIn(form:HTMLFormElement,error:unknown){
 export function renderPostForm(ctx:Context){
   const id=new URLSearchParams(location.search).get("id")??undefined, post=ctx.data.posts.find(p=>p.post_id===id);
   if(id&&(!post||(post.author_id!==ctx.user.uid&&ctx.user.role!=="admin"))){ctx.root.innerHTML=empty("ไม่สามารถแก้ไขประกาศ","ไม่พบประกาศหรือคุณไม่มีสิทธิ์");return;}
+  const catalog=loadCatalog(ctx.data.assignments);
+  const matchedSubject=catalog.subjects.find(row=>row.id===post?.subject_id)||catalog.subjects.find(row=>row.name===post?.subject_name);
+  const selectedSubject=matchedSubject?.id??(post?.subject_name?"legacy-subject":"");
+  const subjectOptions=(post?.subject_name&&selectedSubject==="legacy-subject"?`<option value="legacy-subject" selected>${e(post.subject_name)} · ข้อมูลเดิม</option>`:"")+catalog.subjects.map(row=>`<option value="${e(row.id)}" ${row.id===selectedSubject?"selected":""}>${e(row.name)} · ปีการศึกษา ${row.academicYear} · ${row.sectionCount} Sec</option>`).join("");
+  const initialAudience=post?.subject_name?(post.target_scope==="SPECIFIC"&&post.target_sections.length===1?`SEC:${post.target_sections[0]}`:"ALL"):"";
   ctx.root.innerHTML=heading(id?"แก้ไขประกาศ":"สร้างประกาศ",ctx.user.role==="admin"?"เผยแพร่และจัดการข่าวสารของรุ่น":"แบ่งปันข่าวสาร หรือเสนอเป็นประกาศทางการ","WRITE AN ANNOUNCEMENT",'<a class="button" href="'+href(ctx.user.role==="admin"?"adminPosts":"official")+'">'+icon("left")+' กลับ</a>')+
   `<form class="panel form-panel" id="post-form"><div data-error class="form-error" role="alert" tabindex="-1" hidden></div>
-  <section class="form-section"><h2>เนื้อหาประกาศ</h2><label class="field">หัวข้อ <span aria-hidden="true">*</span><input name="title" required maxlength="160" placeholder="เช่น แจ้งเปลี่ยนห้องเรียนวิชา OOP" value="${e(post?.title??"")}"></label><label class="field">รายละเอียด <span aria-hidden="true">*</span><textarea name="content" required maxlength="10000" rows="9" placeholder="รายละเอียดที่เพื่อนร่วมรุ่นควรทราบ…">${e(post?.content??"")}</textarea><small>รองรับ ## หัวข้อ, **ตัวหนา**, รายการ - และ code ใน backtick · HTML จะแสดงเป็นข้อความ</small></label><button class="button small" type="button" id="preview-post">${icon("book")} ดูตัวอย่างเนื้อหา</button></section>
-  <section class="form-section"><h2>การเผยแพร่</h2><label class="field">ประเภทประกาศ<select name="category"><option value="general" ${post?.category==="general"?"selected":""}>ประกาศทั่วไป</option><option value="official" ${post?.category==="official"?"selected":""}>ประกาศทางการ</option></select></label>
-  <p class="info-box" id="publication-note"></p>${ctx.user.role==="admin"?'<label class="check-label"><input type="checkbox" name="pinned" '+(post?.is_pinned?"checked":"")+'> ปักหมุดประกาศหลังเผยแพร่</label>':""}</section>
-  <section class="form-section"><h2>ลิงก์เอกสารแนบ</h2><p class="note-hint">แนบลิงก์ Google Drive, OneDrive หรือแหล่งข้อมูลภายนอก</p><div id="attachments"></div><button class="button small" type="button" id="add-link">${icon("plus")} เพิ่มลิงก์</button></section>
+  <section class="form-section"><h2>ประเภทและเนื้อหาข่าวสาร</h2><label class="field">ประเภทข่าวสาร <span aria-hidden="true">*</span><select name="category" required><option value="general" ${post?.category==="general"?"selected":""}>ข่าวสารทั่วไป</option><option value="official" ${post?.category==="official"?"selected":""}>ข่าวสารทางการ</option></select></label><label class="field">หัวข้อ <span aria-hidden="true">*</span><input name="title" required maxlength="160" placeholder="เช่น แจ้งเปลี่ยนห้องเรียนวิชา OOP" value="${e(post?.title??"")}"></label><label class="field">รายละเอียด <span aria-hidden="true">*</span><textarea name="content" required maxlength="10000" rows="9" placeholder="รายละเอียดที่เพื่อนร่วมรุ่นควรทราบ…">${e(post?.content??"")}</textarea><small>รองรับ ## หัวข้อ, **ตัวหนา**, รายการ - และ code ใน backtick · HTML จะแสดงเป็นข้อความ</small></label><button class="button small" type="button" id="preview-post">${icon("book")} ดูตัวอย่างเนื้อหา</button><p class="info-box" id="publication-note"></p>${ctx.user.role==="admin"?'<label class="check-label"><input type="checkbox" name="pinned" '+(post?.is_pinned?"checked":"")+'> ปักหมุดประกาศหลังเผยแพร่</label>':""}</section>
+  <section class="form-section"><h2>รูปภาพและเอกสาร <small class="optional-label">ไม่บังคับ</small></h2><label class="field">URL รูปภาพ<input name="image_url" type="url" maxlength="2048" placeholder="https://example.com/image.jpg" value="${e(post?.image_url??"")}"><small>ระยะ Frontend ใช้ลิงก์รูปภาพก่อน และเปลี่ยนเป็นอัปโหลดเข้า Storage ได้เมื่อเชื่อม Backend</small></label><p class="note-hint">แนบลิงก์ Google Drive, OneDrive หรือแหล่งข้อมูลภายนอก</p><div id="attachments"></div><button class="button small" type="button" id="add-link">${icon("plus")} เพิ่มลิงก์เอกสาร</button></section>
+  <section class="form-section"><h2>รายวิชาและกลุ่มผู้รับ</h2>${!catalog.subjects.length?'<div class="info-box">ยังไม่มีข้อมูลรายวิชา กรุณาให้ผู้ดูแลเพิ่มรายวิชาในหน้าข้อมูลพื้นฐานก่อนสร้างข่าวทางการ</div>':""}<div class="form-row"><label class="field">ข่าวสารของวิชา <span class="conditional-required" aria-hidden="true"></span><select name="subject_id"><option value="">ไม่ระบุรายวิชา</option>${subjectOptions}</select><small>ข่าวทางการจำเป็นต้องเลือก · ข่าวทั่วไปเว้นว่างได้</small></label><label class="field">กลุ่มผู้รับ <span class="conditional-required" aria-hidden="true"></span><select name="audience" disabled><option value="">เลือกรายวิชาก่อน</option></select><small>ตัวเลือก Sec จะอิงจากจำนวน Sec ของวิชาที่เลือก</small></label></div><p class="note-hint" id="targeting-note"></p></section>
   <div class="form-footer"><a class="button" href="${href(ctx.user.role==="admin"?"adminPosts":"official")}">ยกเลิก</a><button class="button primary" type="submit" id="post-submit">${id?"บันทึกการแก้ไข":"เผยแพร่ประกาศ"}</button></div></form>`;
   const form=ctx.root.querySelector<HTMLFormElement>("#post-form")!, clearDirty=guardDirty(form), links=form.querySelector<HTMLElement>("#attachments")!;
   const addLink=(name="",url="")=>{const row=document.createElement("div");row.className="attachment-row";row.innerHTML='<label>ชื่อเอกสาร<input required maxlength="100" data-link-name value="'+e(name)+'"></label><label>URL<input required type="url" data-link-url placeholder="https://" value="'+e(url)+'"></label><button type="button" class="icon-button" aria-label="ลบลิงก์">'+icon("close")+'</button>';row.querySelector("button")!.onclick=()=>{row.remove();form.dispatchEvent(new Event("input"));};links.append(row);};
   post?.attachments.forEach(a=>addLink(a.name,a.url));
   form.querySelector<HTMLButtonElement>("#add-link")!.onclick=()=>{addLink();links.querySelector<HTMLInputElement>(".attachment-row:last-child input")?.focus();};
+  const categorySelect=form.elements.namedItem("category") as HTMLSelectElement;
+  const subjectSelect=form.elements.namedItem("subject_id") as HTMLSelectElement;
+  const audienceSelect=form.elements.namedItem("audience") as HTMLSelectElement;
+  const subjectFor=(value:string)=>value==="legacy-subject"&&post?.subject_name?{id:post.subject_id??"legacy-subject",name:post.subject_name,academicYear:new Date().getFullYear()+543,sectionCount:Math.max(2,...post.target_sections)}:catalog.subjects.find(row=>row.id===value);
+  const renderAudience=(desired=audienceSelect.value||initialAudience)=>{
+    const subject=subjectFor(subjectSelect.value);
+    if(!subject){audienceSelect.innerHTML='<option value="">เลือกรายวิชาก่อน</option>';audienceSelect.disabled=true;audienceSelect.required=false;return;}
+    audienceSelect.disabled=false;
+    audienceSelect.innerHTML='<option value="">เลือกกลุ่มผู้รับ</option><option value="ALL">ทุก Sec ของวิชานี้</option>'+Array.from({length:subject.sectionCount},(_,index)=>`<option value="SEC:${index+1}">Sec ${index+1}</option>`).join("");
+    if([...audienceSelect.options].some(option=>option.value===desired))audienceSelect.value=desired;
+  };
   const updateNote=()=>{
-    const official=(form.elements.namedItem("category") as HTMLSelectElement).value==="official";
+    const official=categorySelect.value==="official";
+    subjectSelect.required=official;
+    audienceSelect.required=official||!!subjectSelect.value;
+    form.querySelectorAll<HTMLElement>(".conditional-required").forEach(mark=>mark.textContent=official?"*":"");
     form.querySelector("#publication-note")!.textContent=official?(ctx.user.role==="admin"?(post&&post.status!=="published"?"การแก้ไขคงสถานะเดิม กรุณาดำเนินการอนุมัติที่หน้าตรวจสอบคำขอ":"ผู้ดูแลสามารถเผยแพร่ประกาศทางการได้ทันที"):"ประกาศทางการจะรอผู้ดูแลตรวจสอบ หากแก้ไขเนื้อหาจะส่งกลับไปรออนุมัติ"):"ประกาศทั่วไปเผยแพร่ให้เพื่อนร่วมรุ่นเห็นได้ทันที";
+    form.querySelector("#targeting-note")!.textContent=official?"ข่าวทางการต้องเลือกรายวิชา และเลือกทุก Sec หรือ Sec ใด Sec หนึ่ง":"ข่าวทั่วไปไม่จำเป็นต้องระบุรายวิชาหรือ Sec แต่หากเลือกรายวิชา ต้องเลือกกลุ่มผู้รับให้ครบด้วย";
     form.querySelector("#post-submit")!.textContent=id?"บันทึกการแก้ไข":official&&ctx.user.role!=="admin"?"ส่งคำขออนุมัติ":"เผยแพร่ประกาศ";
   };
-  (form.elements.namedItem("category") as HTMLSelectElement).onchange=updateNote;updateNote();
+  categorySelect.onchange=updateNote;
+  subjectSelect.onchange=()=>{renderAudience("");updateNote();};
+  renderAudience(initialAudience);updateNote();
   form.querySelector<HTMLButtonElement>("#preview-post")!.onclick=()=>dialog("ตัวอย่างประกาศ",'<div class="prose">'+markdown((form.elements.namedItem("content") as HTMLTextAreaElement).value)+'</div>',true);
   form.onsubmit=async event=>{
     event.preventDefault();const button=form.querySelector<HTMLButtonElement>("[type=submit]")!;if(button.disabled)return;button.disabled=true;
-    const fd=new FormData(form);
-    const input:PostInput={title:String(fd.get("title")).trim(),content:String(fd.get("content")).trim(),category:fd.get("category") as PostInput["category"],is_pinned:fd.has("pinned"),target_scope:"ALL",target_sections:[],attachments:[...links.querySelectorAll(".attachment-row")].map(row=>({name:row.querySelector<HTMLInputElement>("[data-link-name]")!.value.trim(),url:row.querySelector<HTMLInputElement>("[data-link-url]")!.value.trim()}))};
-    try{validatePost(input);const saved=await ctx.repo.savePost(input,id);clearDirty();navigate("postDetail",saved.post_id);}catch(error){errorIn(form,error);button.disabled=false;}
+    try{
+      const fd=new FormData(form),category=fd.get("category") as PostInput["category"],subject=subjectFor(String(fd.get("subject_id")??"")),audience=String(fd.get("audience")??"");
+      if(category==="official"&&(!subject||!audience))throw new Error("ประกาศทางการต้องเลือกรายวิชาและกลุ่มผู้รับ");
+      if(subject&&!audience)throw new Error("เมื่อเลือกรายวิชา กรุณาเลือกทุก Sec หรือ Sec ที่ต้องการ");
+      const section=audience.startsWith("SEC:")?Number(audience.slice(4)):null;
+      if(section&&subject&&section>subject.sectionCount)throw new Error("Sec ที่เลือกไม่อยู่ในรายวิชานี้");
+      const targeted=!!subject&&!!audience;
+      const input:PostInput={title:String(fd.get("title")).trim(),content:String(fd.get("content")).trim(),category,is_pinned:fd.has("pinned"),image_url:String(fd.get("image_url")??"").trim()||null,subject_id:targeted?subject.id:null,subject_name:targeted?subject.name:null,target_scope:section?"SPECIFIC":"ALL",target_sections:section?[section]:[],attachments:[...links.querySelectorAll(".attachment-row")].map(row=>({name:row.querySelector<HTMLInputElement>("[data-link-name]")!.value.trim(),url:row.querySelector<HTMLInputElement>("[data-link-url]")!.value.trim()}))};
+      validatePost(input);const saved=await ctx.repo.savePost(input,id);clearDirty();navigate("postDetail",saved.post_id);
+    }catch(error){errorIn(form,error);button.disabled=false;}
   };
 }
 export function renderAssignmentForm(ctx:Context){

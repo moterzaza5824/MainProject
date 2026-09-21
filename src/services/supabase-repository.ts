@@ -3,7 +3,7 @@ import type { AssignmentInput, AssignmentRow, PostInput, PostQuery, PostRow, Pro
 import { validateAssignment, validatePost } from "./repository";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
-const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
+const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
 const TASK_FIELDS = "assignment_id,created_by,subject_name,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
 export class SupabaseRepository implements Repository {
   readonly mode = "supabase" as const;

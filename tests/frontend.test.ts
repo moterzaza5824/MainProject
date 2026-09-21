@@ -35,6 +35,8 @@ async function context(role: "student" | "admin" = "student"): Promise<Context> 
 }
 const postInput = (category: "general" | "official" = "general"): PostInput => ({
   title: "ข่าวทดสอบ", content: "รายละเอียด", category, is_pinned: false,
+  image_url: null, subject_id: category==="official"?"seed-subject-1":null,
+  subject_name: category==="official"?"Object-Oriented Programming":null,
   target_scope: "ALL", target_sections: [], attachments: []
 });
 const taskInput = (): AssignmentInput => ({
@@ -125,6 +127,8 @@ test("section and 48-hour urgency logic handles ALL, optional split section, and
 
 test("input validation and safe formatting reject dangerous links and invalid schedules", () => {
   assert.throws(()=>validatePost({...postInput(),attachments:[{name:"X",url:"javascript:alert(1)"}]}));
+  assert.throws(()=>validatePost({...postInput(),image_url:"javascript:alert(1)"}));
+  assert.throws(()=>validatePost({...postInput("official"),subject_id:null,subject_name:null}),/ประกาศทางการ/);
   assert.throws(()=>validateAssignment({...taskInput(),schedule_mode:"SPLIT",due_dates:{}}));
   assert.throws(()=>validateAssignment({...taskInput(),due_dates:{sec_1:"2026-09-20"}}));
   validateAssignment({...taskInput(),schedule_mode:"SPLIT",due_dates:{sec_2:"2026-09-20T12:00:00Z"}});
@@ -167,27 +171,55 @@ test("published news boards are separated from the student's pending request pag
   assert.doesNotMatch(ctx.root.textContent!,/แบ่งปันสรุปบทเรียน/);
 });
 
-test("post cards omit section classification while keeping the pin in the top-right group", () => {
-  const post=createSeed().posts.find(p=>p.is_pinned)!;
-  document.querySelector("#app")!.innerHTML=postCard(post);
+test("post cards show subject-aware audience and pin badges in the top-right group", () => {
+  const post=createSeed().posts.find(p=>p.post_id==="official-lab")!;
+  document.querySelector("#app")!.innerHTML=postCard({...post,image_url:"https://example.com/announcement.jpg"});
   const flags=document.querySelector(".post-card-flags")!;
-  assert.ok(flags.querySelector(".badge.pin"));
-  assert.match(flags.textContent!,/ปักหมุด/);
-  assert.doesNotMatch(flags.textContent!,/ทั้งรุ่น|Sec/);
+  assert.match(flags.textContent!,/Object-Oriented Programming/);
+  assert.match(flags.textContent!,/Sec 1/);
+  assert.ok(document.querySelector(".post-card-image"));
+  document.querySelector("#app")!.innerHTML=postCard(createSeed().posts.find(p=>p.is_pinned)!);
+  assert.ok(document.querySelector(".post-card-flags .badge.pin"));
+  assert.match(document.querySelector(".post-card-flags")!.textContent!,/ทุก Sec/);
 });
 
-test("announcement form removes section choice and saves new posts for the whole cohort", async () => {
+test("announcement form keeps general targeting optional and requires course-aware targeting for official news", async () => {
   const ctx=await context("student");
   renderPostForm(ctx);
-  const form=ctx.root.querySelector<HTMLFormElement>("#post-form")!;
-  assert.equal(form.elements.namedItem("scope"),null);
-  (form.elements.namedItem("title") as HTMLInputElement).value="ข่าวที่ไม่มีการแบ่ง Sec";
+  let form=ctx.root.querySelector<HTMLFormElement>("#post-form")!;
+  const generalSubject=form.elements.namedItem("subject_id") as HTMLSelectElement;
+  const generalAudience=form.elements.namedItem("audience") as HTMLSelectElement;
+  assert.equal(generalSubject.required,false);
+  assert.equal(generalAudience.disabled,true);
+  (form.elements.namedItem("title") as HTMLInputElement).value="ข่าวทั่วไปทั้งรุ่น";
   (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดสำหรับเพื่อนร่วมรุ่น";
   form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
   await flush();
-  const saved=(await repo.snapshot()).posts.find(p=>p.title==="ข่าวที่ไม่มีการแบ่ง Sec")!;
-  assert.equal(saved.target_scope,"ALL");
-  assert.deepEqual(saved.target_sections,[]);
+  const general=(await repo.snapshot()).posts.find(p=>p.title==="ข่าวทั่วไปทั้งรุ่น")!;
+  assert.equal(general.subject_id,null);assert.equal(general.target_scope,"ALL");
+  const stored=JSON.parse(localStorage.getItem("se68-demo-data-v1")!);
+  stored.posts=stored.posts.map((row:any)=>({...row,created_at:"2026-01-01T00:00:00.000Z"}));
+  localStorage.setItem("se68-demo-data-v1",JSON.stringify(stored));
+
+  win.location.href="http://localhost:5173/pages/posts/create/";renderPostForm(ctx);
+  form=ctx.root.querySelector<HTMLFormElement>("#post-form")!;
+  const category=form.elements.namedItem("category") as HTMLSelectElement;
+  const subject=form.elements.namedItem("subject_id") as HTMLSelectElement;
+  const audience=form.elements.namedItem("audience") as HTMLSelectElement;
+  category.value="official";category.dispatchEvent(new Event("change",{bubbles:true}));
+  assert.equal(subject.required,true);
+  subject.value=subject.options[1].value;subject.dispatchEvent(new Event("change",{bubbles:true}));
+  assert.equal(audience.disabled,false);assert.equal(audience.required,true);
+  assert.match(audience.textContent!,/ทุก Sec/);assert.match(audience.textContent!,/Sec 1/);
+  audience.value="SEC:1";
+  (form.elements.namedItem("title") as HTMLInputElement).value="ข่าวทางการเฉพาะ Sec";
+  (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดที่ต้องรออนุมัติ";
+  (form.elements.namedItem("image_url") as HTMLInputElement).value="https://example.com/news.jpg";
+  form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
+  const official=(await repo.snapshot()).posts.find(p=>p.title==="ข่าวทางการเฉพาะ Sec")!;
+  assert.equal(official.status,"pending");assert.ok(official.subject_name);
+  assert.equal(official.target_scope,"SPECIFIC");assert.deepEqual(official.target_sections,[1]);
+  assert.equal(official.image_url,"https://example.com/news.jpg");
 });
 
 test("failed post query shows an actionable retry", async () => {
