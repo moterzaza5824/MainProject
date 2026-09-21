@@ -25,6 +25,10 @@ export function formatDate(value: string | number | Date, withTime = true): stri
   if (!Number.isFinite(new Date(value).getTime())) return "ไม่พบกำหนดส่ง";
   return new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short", year: "numeric", ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}) }).format(new Date(value));
 }
+export function formatTime(value: string | number | Date): string {
+  if (!Number.isFinite(new Date(value).getTime())) return "ไม่พบเวลา";
+  return new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date(value));
+}
 export function thaiInput(value?: string): string {
   if (!value) return "";
   if (!Number.isFinite(Date.parse(value))) return "";
