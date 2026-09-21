@@ -244,6 +244,8 @@ label>input,label>select,label>textarea{margin-top:7px}
 .post-card h2 a{color:var(--ink)}
 .post-card-copy{margin-bottom:22px}
 .post-card-copy p{font-size:15px;color:var(--muted);line-height:1.8;white-space:pre-line}
+.post-card-copy [data-post-summary]{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.post-copy-measure{position:absolute!important;visibility:hidden!important;pointer-events:none!important;max-height:none!important;-webkit-line-clamp:unset!important;line-clamp:unset!important}
 .post-copy-toggle{display:inline;padding:0;border:0;background:transparent;color:var(--green);font:inherit;font-size:14px;font-weight:700;cursor:pointer}
 .post-copy-toggle:hover{text-decoration:underline}
 .post-copy-toggle:focus-visible{outline:3px solid #9be6bb;outline-offset:3px;border-radius:3px}

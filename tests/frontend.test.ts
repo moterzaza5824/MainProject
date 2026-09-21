@@ -216,6 +216,18 @@ test("long post copy expands and feed images open with post details", async () =
   viewer.close();
 });
 
+test("post previews use two-line summaries and route posts over ten lines to detail", async () => {
+  const ctx=await context(),raw=JSON.parse(localStorage.getItem("se68-demo-data-v1")!),longLines=Array.from({length:11},(_,index)=>`บรรทัดที่ ${index+1} สำหรับทดสอบประกาศ`).join("\n");
+  const general=raw.posts.find((post:any)=>post.category==="general");
+  raw.posts=raw.posts.map((post:any)=>post.post_id===general.post_id?{...post,content:longLines}:post);
+  localStorage.setItem("se68-demo-data-v1",JSON.stringify(raw));
+  renderPosts(ctx,"general");await flush();
+  const summary=ctx.root.querySelector<HTMLElement>("[data-post-summary]")!,toggle=ctx.root.querySelector<HTMLButtonElement>("[data-expand-post]")!;
+  assert.equal(summary.textContent,longLines);assert.equal(toggle.dataset.expandPost,"detail");assert.equal(toggle.textContent,"ดูเพิ่มเติม");
+  toggle.click();
+  assert.equal(win.location.pathname,"/pages/posts/detail/");assert.equal(new URLSearchParams(win.location.search).get("id"),general.post_id);
+});
+
 test("announcement form keeps general targeting optional and requires course-aware targeting for official news", async () => {
   const ctx=await context("student");
   renderPostForm(ctx);
@@ -366,6 +378,8 @@ test("sidebar collapse preference persists and active menu is correct", async ()
   mountShell(ctx.user,"assignments",repo);
   assert.match(document.querySelector('[aria-current="page"]')!.textContent!,/งานและการบ้าน/);
   assert.ok(document.querySelector('a[href="/pages/posts/requests/"]'));
+  const studentMenu=[...document.querySelectorAll<HTMLAnchorElement>("#sidebar-nav>a")].map(link=>link.textContent!.trim());
+  assert.deepEqual(studentMenu.slice(0,5),["ภาพรวม","ข่าวสาร","งานและการบ้าน","ปฏิทิน","คำขอประกาศของฉัน"]);
   document.querySelector<HTMLButtonElement>("#collapse-menu")!.click();
   assert.equal(localStorage.getItem("se68-sidebar-collapsed"),"true");
   assert.ok(document.body.classList.contains("sidebar-collapsed"));
