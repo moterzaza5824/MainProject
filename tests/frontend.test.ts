@@ -171,9 +171,14 @@ test("published news boards are separated from the student's pending request pag
   assert.doesNotMatch(ctx.root.textContent!,/แบ่งปันสรุปบทเรียน/);
 });
 
-test("post cards show subject-aware audience and pin badges in the top-right group", () => {
+test("post cards lead with the author, keep context at the top, and place images after the copy", () => {
   const post=createSeed().posts.find(p=>p.post_id==="official-lab")!;
   document.querySelector("#app")!.innerHTML=postCard({...post,image_url:"https://example.com/announcement.jpg"});
+  const card=document.querySelector<HTMLElement>(".post-card")!,children=[...card.children];
+  const author=card.querySelector(".post-card-head .author")!,title=card.querySelector("h2")!,copy=card.querySelector(":scope > p")!,image=card.querySelector(".post-card-image")!;
+  assert.ok(author.textContent!.includes(post.author_name));
+  assert.ok(children.indexOf(author.closest(".post-card-head")!)<children.indexOf(title));
+  assert.ok(children.indexOf(copy)<children.indexOf(image));
   const flags=document.querySelector(".post-card-flags")!;
   assert.match(flags.textContent!,/Object-Oriented Programming/);
   assert.match(flags.textContent!,/Sec 1/);
