@@ -133,6 +133,16 @@ export class DemoRepository implements Repository {
     data.progress = data.progress.filter(p => p.assignment_id !== id);
     this.write(data);
   }
+  async updateSubjectReferences(subjectId:string,oldName:string,name:string,academicYear:number,semester:import("../types/models").AcademicSemester):Promise<void> {
+    await this.user(true);const data=this.read(),updatedAt=new Date().toISOString();
+    data.assignments=data.assignments.map(row=>row.subject_id===subjectId||(!row.subject_id&&row.subject_name===oldName)?{...row,subject_id:subjectId,subject_name:name,academic_year:academicYear,semester,updated_at:updatedAt}:row);
+    data.posts=data.posts.map(row=>row.subject_id===subjectId||(!row.subject_id&&row.subject_name===oldName)?{...row,subject_id:subjectId,subject_name:name,updated_at:updatedAt}:row);
+    this.write(data);
+  }
+  async updateChannelReferences(oldName:string,name:string):Promise<void> {
+    await this.user(true);const data=this.read(),updatedAt=new Date().toISOString();
+    data.assignments=data.assignments.map(row=>row.submission_channel===oldName?{...row,submission_channel:name,updated_at:updatedAt}:row);this.write(data);
+  }
   async saveProgress(id: string, status: TaskStatus, note: string): Promise<void> {
     const user = await this.user(), data = this.read();
     if (!data.assignments.some(a => a.assignment_id === id)) throw new Error("งานนี้ถูกลบแล้ว");

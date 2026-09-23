@@ -17,6 +17,11 @@ const write=(rows:EnrollmentRow[])=>{
 export const semesterLabel=(semester:SubjectCatalogRow["semester"])=>`ภาคเรียนที่ ${semester}`;
 export const loadEnrollments=(uid:string)=>read().filter(row=>row.uid===uid);
 export const hasEnrollmentsForSubject=(subjectId:string)=>read().some(row=>row.subject_id===subjectId);
+export const maxEnrollmentSectionForSubject=(subjectId:string)=>Math.max(0,...read().filter(row=>row.subject_id===subjectId).map(row=>row.section));
+export function updateEnrollmentSubject(subject:SubjectCatalogRow):void {
+  const rows=read();
+  write(rows.map(row=>row.subject_id===subject.id?{...row,academic_year:subject.academicYear,semester:subject.semester,updated_at:new Date().toISOString()}:row));
+}
 export function saveEnrollments(uid:string,selections:{subject:SubjectCatalogRow;section:number}[]):EnrollmentRow[] {
   if(!selections.length)throw new Error("ไม่มีรายวิชาให้บันทึก");
   if(new Set(selections.map(row=>row.subject.id)).size!==selections.length)throw new Error("พบรายวิชาซ้ำ กรุณาลองใหม่");

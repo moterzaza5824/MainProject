@@ -144,6 +144,14 @@ export class SupabaseRepository implements Repository {
     await this.user(true); const { data, error } = await this.client.from("assignments").delete().eq("assignment_id", id).select("assignment_id");
     if (error) throw error; if (!data?.length) throw new Error("ไม่พบงานนี้");
   }
+  async updateSubjectReferences(subjectId:string,oldName:string,name:string,_academicYear:number,_semester:import("../types/models").AcademicSemester) {
+    await this.user(true);
+    const [posts,assignments]=await Promise.all([this.client.from("posts").update({subject_name:name,updated_at:new Date().toISOString()}).eq("subject_id",subjectId),this.client.from("assignments").update({subject_name:name,updated_at:new Date().toISOString()}).eq("subject_name",oldName)]);
+    if(posts.error)throw posts.error;if(assignments.error)throw assignments.error;
+  }
+  async updateChannelReferences(oldName:string,name:string) {
+    await this.user(true);const {error}=await this.client.from("assignments").update({submission_channel:name,updated_at:new Date().toISOString()}).eq("submission_channel",oldName);if(error)throw error;
+  }
   async saveProgress(id: string, status: TaskStatus, note: string) {
     const user = await this.user();
     if (!["TODO", "DOING", "DONE"].includes(status) || note.length > 2000) throw new Error("สถานะหรือบันทึกไม่ถูกต้อง");

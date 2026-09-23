@@ -13,7 +13,7 @@ import { renderAuth } from "../src/views/auth";
 import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
-import { deleteChannel, deleteSubject, loadCatalog } from "../src/services/catalog";
+import { deleteChannel, deleteSubject, loadCatalog, updateChannel, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
 import type { PostInput, AssignmentInput, ProgressRow } from "../src/types/models";
@@ -348,6 +348,15 @@ test("master data page adds subject and channel choices used by the assignment f
   assert.equal(deleteSubject(ctx.data.assignments,ctx.data.posts,subject.id).subjects.some(row=>row.id===subject.id),false);
   assert.equal(deleteChannel(ctx.data.assignments,channel.id).channels.some(row=>row.id===channel.id),false);
   assert.throws(()=>deleteSubject(ctx.data.assignments,ctx.data.posts,loadCatalog(ctx.data.assignments).subjects.find(row=>row.name==="Object-Oriented Programming")!.id),/ใช้งานอยู่/);
+  const oop=loadCatalog(ctx.data.assignments).subjects.find(row=>row.name==="Object-Oriented Programming")!;
+  const edited=updateSubject(ctx.data.assignments,ctx.data.posts,oop.id,{name:"Advanced Object-Oriented Programming",academicYear:oop.academicYear,semester:oop.semester,sectionCount:oop.sectionCount});
+  await repo.updateSubjectReferences(oop.id,oop.name,edited.subjects.find(row=>row.id===oop.id)!.name,oop.academicYear,oop.semester);
+  const subjectSnapshot=await repo.snapshot();
+  assert.ok(subjectSnapshot.assignments.filter(row=>row.subject_id===oop.id).every(row=>row.subject_name==="Advanced Object-Oriented Programming"));
+  assert.ok(subjectSnapshot.posts.filter(row=>row.subject_id===oop.id).every(row=>row.subject_name==="Advanced Object-Oriented Programming"));
+  const teams=loadCatalog(subjectSnapshot.assignments).channels.find(row=>row.name==="Microsoft Teams")!;
+  updateChannel(subjectSnapshot.assignments,teams.id,"UP LMS");await repo.updateChannelReferences(teams.name,"UP LMS");
+  assert.ok((await repo.snapshot()).assignments.filter(row=>row.submission_channel==="UP LMS").length>0);
 });
 
 test("all page renderers provide content for both roles and missing records", async () => {

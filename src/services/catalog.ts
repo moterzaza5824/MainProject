@@ -77,6 +77,25 @@ export function addChannel(assignments:AssignmentRow[],nameInput:string):MasterC
   catalog.channels.unshift({id:id("channel"),name});
   write(catalog);return catalog;
 }
+export function updateSubject(assignments:AssignmentRow[],posts:PostRow[],subjectId:string,input:{name:string;academicYear:number;semester:AcademicSemester;sectionCount:number},maxEnrolledSection=0):MasterCatalog {
+  const catalog=loadCatalog(assignments),subject=catalog.subjects.find(row=>row.id===subjectId),name=normalize(input.name);
+  if(!subject)throw new Error("ไม่พบรายวิชาที่ต้องการแก้ไข");
+  if(!name||name.length>120)throw new Error("กรุณาระบุชื่อวิชาไม่เกิน 120 ตัวอักษร");
+  if(!Number.isInteger(input.academicYear)||input.academicYear<2500||input.academicYear>2700)throw new Error("ปีการศึกษาต้องอยู่ระหว่าง 2500–2700");
+  if(!["1","2"].includes(input.semester))throw new Error("กรุณาเลือกภาคเรียนให้ถูกต้อง");
+  if(!Number.isInteger(input.sectionCount)||input.sectionCount<1||input.sectionCount>20)throw new Error("จำนวน Sec ต้องอยู่ระหว่าง 1–20");
+  if(catalog.subjects.some(row=>row.id!==subjectId&&row.academicYear===input.academicYear&&row.semester===input.semester&&row.name.localeCompare(name,undefined,{sensitivity:"accent"})===0))throw new Error("มีรายวิชานี้ในปีและภาคเรียนที่เลือกแล้ว");
+  const referencedSections=[maxEnrolledSection,...assignments.filter(row=>row.subject_id===subjectId||(!row.subject_id&&row.subject_name===subject.name)).flatMap(row=>Object.keys(row.due_dates).filter(key=>key.startsWith("sec_")).map(key=>Number(key.slice(4)))),...posts.filter(row=>row.subject_id===subjectId).flatMap(row=>row.target_sections)];
+  if(Math.max(0,...referencedSections)>input.sectionCount)throw new Error("ลดจำนวน Sec ไม่ได้ เพราะยังมีงาน ประกาศ หรือการลงทะเบียนใน Sec ที่สูงกว่า");
+  catalog.subjects=catalog.subjects.map(row=>row.id===subjectId?{...row,...input,name}:row);write(catalog);return catalog;
+}
+export function updateChannel(assignments:AssignmentRow[],channelId:string,nameInput:string):MasterCatalog {
+  const catalog=loadCatalog(assignments),channel=catalog.channels.find(row=>row.id===channelId),name=normalize(nameInput);
+  if(!channel)throw new Error("ไม่พบช่องทางส่งงานที่ต้องการแก้ไข");
+  if(!name||name.length>120)throw new Error("กรุณาระบุชื่อช่องทางส่งงานไม่เกิน 120 ตัวอักษร");
+  if(catalog.channels.some(row=>row.id!==channelId&&row.name.localeCompare(name,undefined,{sensitivity:"accent"})===0))throw new Error("มีช่องทางส่งงานนี้แล้ว");
+  catalog.channels=catalog.channels.map(row=>row.id===channelId?{...row,name}:row);write(catalog);return catalog;
+}
 export function deleteSubject(assignments:AssignmentRow[],posts:PostRow[],subjectId:string,hasEnrollment=false):MasterCatalog {
   const catalog=loadCatalog(assignments),subject=catalog.subjects.find(row=>row.id===subjectId);
   if(!subject)throw new Error("ไม่พบรายวิชาที่ต้องการลบ");

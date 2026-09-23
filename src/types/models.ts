@@ -52,5 +52,7 @@ export interface Repository {
   deletePost(id: string): Promise<void>;
   saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow>;
   deleteAssignment(id: string): Promise<void>;
+  updateSubjectReferences(subjectId: string, oldName: string, name: string, academicYear: number, semester: AcademicSemester): Promise<void>;
+  updateChannelReferences(oldName: string, name: string): Promise<void>;
   saveProgress(id: string, status: TaskStatus, note: string): Promise<void>;
 }
