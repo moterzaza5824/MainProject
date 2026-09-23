@@ -13,7 +13,7 @@ import { renderAuth } from "../src/views/auth";
 import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
-import { deleteChannel, deleteSubject, loadCatalog, updateChannel, updateSubject } from "../src/services/catalog";
+import { addSubject, deleteChannel, deleteSubject, loadCatalog, updateChannel, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
 import type { PostInput, AssignmentInput, ProgressRow } from "../src/types/models";
@@ -281,6 +281,28 @@ test("announcement form keeps general targeting optional and requires course-awa
   assert.equal(official.status,"pending");assert.ok(official.subject_name);
   assert.equal(official.target_scope,"SPECIFIC");assert.deepEqual(official.target_sections,[1]);
   assert.equal(official.image_url,"https://example.com/news.jpg");
+});
+
+test("announcement form locks a one-section subject to Sec 1 and saves that audience", async () => {
+  const ctx=await context("admin");
+  addSubject(ctx.data.assignments,{name:"วิชาที่มีหนึ่งกลุ่มเรียน",academicYear:2569,semester:"1",sectionCount:1});
+  const oneSection=loadCatalog(ctx.data.assignments).subjects.find(row=>row.name==="วิชาที่มีหนึ่งกลุ่มเรียน")!;
+  renderPostForm(ctx);
+  const form=ctx.root.querySelector<HTMLFormElement>("#post-form")!;
+  const category=form.elements.namedItem("category") as HTMLSelectElement;
+  const subject=form.elements.namedItem("subject_id") as HTMLSelectElement;
+  const audience=form.elements.namedItem("audience") as HTMLSelectElement;
+  category.value="official";category.dispatchEvent(new Event("change",{bubbles:true}));
+  subject.value=oneSection.id;subject.dispatchEvent(new Event("change",{bubbles:true}));
+  assert.equal(audience.value,"SEC:1");assert.equal(audience.disabled,true);assert.equal(audience.required,false);
+  assert.match(audience.textContent!,/Sec 1 \(กำหนดอัตโนมัติ\)/);
+  assert.match(ctx.root.querySelector("#targeting-note")!.textContent!,/กำหนดกลุ่มผู้รับเป็น Sec 1 อัตโนมัติ/);
+  (form.elements.namedItem("title") as HTMLInputElement).value="ประกาศสำหรับวิชา Sec เดียว";
+  (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดประกาศ";
+  form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
+  const saved=(await repo.snapshot()).posts.find(row=>row.title==="ประกาศสำหรับวิชา Sec เดียว")!;
+  assert.equal(saved.subject_id,oneSection.id);
+  assert.equal(saved.target_scope,"SPECIFIC");assert.deepEqual(saved.target_sections,[1]);
 });
 
 test("failed post query shows an actionable retry", async () => {

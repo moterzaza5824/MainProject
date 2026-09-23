@@ -40,17 +40,21 @@ export function renderPostForm(ctx:Context){
   const renderAudience=(desired=audienceSelect.value||initialAudience)=>{
     const subject=subjectFor(subjectSelect.value);
     if(!subject){audienceSelect.innerHTML='<option value="">เลือกรายวิชาก่อน</option>';audienceSelect.disabled=true;audienceSelect.required=false;return;}
+    if(subject.sectionCount===1){
+      audienceSelect.innerHTML='<option value="SEC:1">Sec 1 (กำหนดอัตโนมัติ)</option>';
+      audienceSelect.value="SEC:1";audienceSelect.disabled=true;audienceSelect.required=false;return;
+    }
     audienceSelect.disabled=false;
     audienceSelect.innerHTML='<option value="">เลือกกลุ่มผู้รับ</option><option value="ALL">ทุก Sec ของวิชานี้</option>'+Array.from({length:subject.sectionCount},(_,index)=>`<option value="SEC:${index+1}">Sec ${index+1}</option>`).join("");
     if([...audienceSelect.options].some(option=>option.value===desired))audienceSelect.value=desired;
   };
   const updateNote=()=>{
-    const official=categorySelect.value==="official";
+    const official=categorySelect.value==="official",subject=subjectFor(subjectSelect.value),singleSection=subject?.sectionCount===1;
     subjectSelect.required=official;
-    audienceSelect.required=official||!!subjectSelect.value;
+    audienceSelect.required=(official||!!subjectSelect.value)&&!audienceSelect.disabled;
     form.querySelectorAll<HTMLElement>(".conditional-required").forEach(mark=>mark.textContent=official?"*":"");
     form.querySelector("#publication-note")!.textContent=official?(ctx.user.role==="admin"?(post&&post.status!=="published"?"การแก้ไขคงสถานะเดิม กรุณาดำเนินการอนุมัติที่หน้าตรวจสอบคำขอ":"ผู้ดูแลสามารถเผยแพร่ประกาศทางการได้ทันที"):"ประกาศทางการจะรอผู้ดูแลตรวจสอบ หากแก้ไขเนื้อหาจะส่งกลับไปรออนุมัติ"):"ประกาศทั่วไปเผยแพร่ให้เพื่อนร่วมรุ่นเห็นได้ทันที";
-    form.querySelector("#targeting-note")!.textContent=official?"ข่าวทางการต้องเลือกรายวิชา และเลือกทุก Sec หรือ Sec ใด Sec หนึ่ง":"ข่าวทั่วไปไม่จำเป็นต้องระบุรายวิชาหรือ Sec แต่หากเลือกรายวิชา ต้องเลือกกลุ่มผู้รับให้ครบด้วย";
+    form.querySelector("#targeting-note")!.textContent=singleSection?"รายวิชานี้มี 1 Sec ระบบกำหนดกลุ่มผู้รับเป็น Sec 1 อัตโนมัติ":official?"ข่าวทางการต้องเลือกรายวิชา และเลือกทุก Sec หรือ Sec ใด Sec หนึ่ง":"ข่าวทั่วไปไม่จำเป็นต้องระบุรายวิชาหรือ Sec แต่หากเลือกรายวิชา ต้องเลือกกลุ่มผู้รับให้ครบด้วย";
     form.querySelector("#post-submit")!.textContent=id?"บันทึกการแก้ไข":official&&ctx.user.role!=="admin"?"ส่งคำขออนุมัติ":"เผยแพร่ประกาศ";
   };
   categorySelect.onchange=updateNote;
@@ -60,7 +64,7 @@ export function renderPostForm(ctx:Context){
   form.onsubmit=async event=>{
     event.preventDefault();const button=form.querySelector<HTMLButtonElement>("[type=submit]")!;if(button.disabled)return;button.disabled=true;
     try{
-      const fd=new FormData(form),category=fd.get("category") as PostInput["category"],subject=subjectFor(String(fd.get("subject_id")??"")),audience=String(fd.get("audience")??"");
+      const fd=new FormData(form),category=fd.get("category") as PostInput["category"],subject=subjectFor(String(fd.get("subject_id")??"")),audience=subject?.sectionCount===1?"SEC:1":String(fd.get("audience")??"");
       if(category==="official"&&(!subject||!audience))throw new Error("ประกาศทางการต้องเลือกรายวิชาและกลุ่มผู้รับ");
       if(subject&&!audience)throw new Error("เมื่อเลือกรายวิชา กรุณาเลือกทุก Sec หรือ Sec ที่ต้องการ");
       const section=audience.startsWith("SEC:")?Number(audience.slice(4)):null;
