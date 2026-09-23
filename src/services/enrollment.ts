@@ -16,13 +16,16 @@ const write=(rows:EnrollmentRow[])=>{
 };
 export const semesterLabel=(semester:SubjectCatalogRow["semester"])=>semester==="summer"?"ภาคฤดูร้อน":`ภาคเรียนที่ ${semester}`;
 export const loadEnrollments=(uid:string)=>read().filter(row=>row.uid===uid);
-export function saveEnrollment(uid:string,subject:SubjectCatalogRow,section:number):EnrollmentRow[] {
-  if(!Number.isInteger(section)||section<1||section>subject.sectionCount)throw new Error("กรุณาเลือก Sec ที่มีอยู่ในรายวิชานี้");
-  const rows=read(),now=new Date().toISOString(),old=rows.find(row=>row.uid===uid&&row.subject_id===subject.id);
-  const saved:EnrollmentRow={enrollment_id:old?.enrollment_id??crypto.randomUUID(),uid,subject_id:subject.id,academic_year:subject.academicYear,semester:subject.semester,section,created_at:old?.created_at??now,updated_at:now};
-  write([...rows.filter(row=>!(row.uid===uid&&row.subject_id===subject.id)),saved]);
+export function saveEnrollments(uid:string,selections:{subject:SubjectCatalogRow;section:number}[]):EnrollmentRow[] {
+  if(!selections.length)throw new Error("ไม่มีรายวิชาให้บันทึก");
+  if(new Set(selections.map(row=>row.subject.id)).size!==selections.length)throw new Error("พบรายวิชาซ้ำ กรุณาลองใหม่");
+  selections.forEach(({subject,section})=>{if(!Number.isInteger(section)||section<1||section>subject.sectionCount)throw new Error(`กรุณาเลือก Sec ของ ${subject.name} ให้ถูกต้อง`);});
+  const rows=read(),now=new Date().toISOString(),subjectIds=new Set(selections.map(row=>row.subject.id));
+  const saved=selections.map(({subject,section})=>{const old=rows.find(row=>row.uid===uid&&row.subject_id===subject.id);return {enrollment_id:old?.enrollment_id??crypto.randomUUID(),uid,subject_id:subject.id,academic_year:subject.academicYear,semester:subject.semester,section,created_at:old?.created_at??now,updated_at:now};});
+  write([...rows.filter(row=>row.uid!==uid||!subjectIds.has(row.subject_id)),...saved]);
   return loadEnrollments(uid);
 }
+export function saveEnrollment(uid:string,subject:SubjectCatalogRow,section:number):EnrollmentRow[] { return saveEnrollments(uid,[{subject,section}]); }
 export function removeEnrollment(uid:string,subjectId:string):EnrollmentRow[] {
   write(read().filter(row=>!(row.uid===uid&&row.subject_id===subjectId)));
   return loadEnrollments(uid);

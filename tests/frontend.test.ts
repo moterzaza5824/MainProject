@@ -374,6 +374,17 @@ test("student enrollment stores one section per course and filters assignments a
   assert.equal(filtered.posts.some(post=>post.post_id==="official-exam"),false);
   ctx.enrollments=enrollments;renderEnrollment(ctx);
   assert.match(ctx.root.textContent!,/ลงทะเบียนแล้ว 1 วิชา/);assert.match(ctx.root.textContent!,/Sec 1/);
+  const other=catalog.subjects.find(row=>row.id!==oop.id)!;
+  const otherSection=ctx.root.querySelector<HTMLSelectElement>(`[data-enrollment-section="${other.id}"]`)!;
+  otherSection.value="2";otherSection.dispatchEvent(new Event("change",{bubbles:true}));
+  assert.equal(otherSection.value,"2");
+  ctx.root.querySelector<HTMLButtonElement>("[data-save-all-enrollments]")!.click();
+  assert.equal(loadEnrollments(ctx.user.uid).length,catalog.subjects.length);
+  assert.equal(loadEnrollments(ctx.user.uid).find(row=>row.subject_id===other.id)?.section,2);
+  const oopSection=ctx.root.querySelector<HTMLSelectElement>(`[data-enrollment-section="${oop.id}"]`)!;
+  oopSection.value="2";ctx.root.querySelector<HTMLButtonElement>("[data-save-all-enrollments]")!.click();
+  const updated=loadEnrollments(ctx.user.uid);
+  assert.equal(updated.length,catalog.subjects.length);assert.equal(updated.find(row=>row.subject_id===oop.id)?.section,2);
 });
 
 test("student dashboard summarizes unsubmitted work and prioritizes score-saving deadlines", async () => {

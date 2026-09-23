@@ -200,6 +200,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 .catalog-lists .panel-title>span{font-size:12px;color:var(--muted)}
 .enrollment-summary{margin-bottom:24px}.enrollment-current{border-color:#b9ddc7}.enrollment-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.enrollment-chip,.course-option{display:flex;align-items:center;gap:16px;border:1px solid var(--border);border-radius:11px;background:#fbfdfc}.enrollment-chip{justify-content:space-between;padding:14px 16px}.enrollment-chip strong,.enrollment-chip span{display:block}.enrollment-chip strong{font-size:14px}.enrollment-chip span{font-size:12px;color:var(--muted);margin-top:4px}.onboarding-callout{display:flex;align-items:flex-start;gap:16px;padding:20px 22px;border:1px solid #efc27d;border-left:5px solid #e49325;border-radius:12px;background:#fff8e9;color:#704a13}.onboarding-callout svg{flex:0 0 auto;margin-top:3px}.onboarding-callout h2{font-size:17px;margin:0 0 5px}.onboarding-callout p{font-size:13px;line-height:1.7;margin:0}.enrollment-filters{margin:20px 0}.course-option-list{display:grid;gap:12px}.course-option{padding:16px}.course-option.registered{border-color:#9fd0b2;background:#f5fbf7}.course-option-main{display:flex;align-items:center;gap:12px;min-width:0;flex:1}.course-option-main h3{font-size:15px;margin:0}.course-option-main p{font-size:12px;color:var(--muted);margin:4px 0 0}.course-option>label{font-size:12px;color:var(--muted);min-width:130px}.course-option>label select{margin-top:4px}
 .dashboard-onboarding{align-items:center;margin-bottom:24px}.dashboard-onboarding .button{margin-left:auto;flex:0 0 auto}
+.enrollment-bulk-bar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 16px;margin-bottom:14px;border:1px solid #b9ddc7;border-radius:11px;background:#f1faf4}.enrollment-bulk-bar strong,.enrollment-bulk-bar span{display:block}.enrollment-bulk-bar strong{font-size:14px}.enrollment-bulk-bar span{font-size:12px;color:var(--muted);margin-top:3px}.enrollment-bulk-footer{display:flex;justify-content:flex-end;padding-top:18px}
 .check-label{display:flex;align-items:center;gap:10px;font-weight:400;font-size:14px}
 .attachment-row{display:grid;grid-template-columns:1fr 1.6fr 40px;gap:10px;margin-bottom:10px;align-items:end}
 .attachment-row label{font-size:12px}
@@ -419,7 +420,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 .calendar-heading .button{padding:7px 9px}
 .calendar-agenda .mini-task{align-items:flex-start}
 .form-row{grid-template-columns:1fr;gap:18px}
-.enrollment-chips{grid-template-columns:1fr}.course-option{align-items:stretch;flex-direction:column}.course-option>label{width:100%}.course-option>.button{width:100%}
+.enrollment-chips{grid-template-columns:1fr}.course-option{align-items:stretch;flex-direction:column}.course-option>label{width:100%}.course-option>.button{width:100%}.enrollment-bulk-bar{align-items:stretch;flex-direction:column}.enrollment-bulk-bar .button,.enrollment-bulk-footer .button{width:100%}
 .attachment-row{grid-template-columns:1fr 40px}
 .attachment-row>label:first-child{grid-column:1/-1}
 .form-footer{flex-wrap:wrap}
