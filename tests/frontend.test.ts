@@ -180,6 +180,19 @@ test("published news boards are separated from the student's pending request pag
   assert.doesNotMatch(ctx.root.textContent!,/แบ่งปันสรุปบทเรียน/);
 });
 
+test("admin announcement rows expose a clearly labeled delete action", async () => {
+  const ctx=await context("admin");
+  renderPosts(ctx,"admin");await flush();
+  const rows=[...ctx.root.querySelectorAll<HTMLTableRowElement>("tbody tr")];
+  assert.ok(rows.length>0);
+  for(const row of rows){
+    const button=row.querySelector<HTMLButtonElement>("[data-delete]");
+    assert.ok(button);
+    assert.match(button.textContent!,/ลบ/);
+    assert.equal(button.title,"ลบประกาศ");
+  }
+});
+
 test("post cards lead with the author, keep context at the top, and place images after the copy", () => {
   const post={...createSeed().posts.find(p=>p.post_id==="official-lab")!,created_at:"2026-09-21T04:35:00.000Z"};
   document.querySelector("#app")!.innerHTML=postCard({...post,image_url:"https://example.com/announcement.jpg"});
