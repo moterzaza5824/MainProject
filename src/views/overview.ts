@@ -5,16 +5,16 @@ import { formatDate, formatTime, dueTime, dueEntries, progressFor, taskUrgency }
 import { heading, signOut } from "../ui/shell";
 import { badge, busy, confirmAction, empty, statusBadge, toast } from "../ui/primitives";
 import { icon } from "../ui/icons";
-import { urgencyBadge } from "./tasks";
 export function renderDashboard(ctx:Context,admin=false) {
   const tasks=ctx.data.assignments, posts=ctx.data.posts;
   const pending=posts.filter(p=>p.status==="pending"),published=posts.filter(p=>p.status==="published");
   const unfinished=tasks.filter(a=>progressFor(ctx.data.progress,ctx.user.uid,a.assignment_id)?.status!=="DONE");
-  const dueWithin24=unfinished.filter(a=>taskUrgency(a,progressFor(ctx.data.progress,ctx.user.uid,a.assignment_id))==="urgent").length;
+  const dueWithin48=unfinished.filter(a=>["urgent","soon"].includes(taskUrgency(a,progressFor(ctx.data.progress,ctx.user.uid,a.assignment_id)))).length;
   const overdue=unfinished.filter(a=>taskUrgency(a,progressFor(ctx.data.progress,ctx.user.uid,a.assignment_id))==="overdue").length;
   const now=Date.now();
-  const taskPriority=(a:typeof tasks[number])=>{const due=dueTime(a);return !Number.isFinite(due)?2:due<now?1:0;};
-  const prioritizedTasks=[...unfinished].sort((a,b)=>{const rank=taskPriority(a)-taskPriority(b),aDue=dueTime(a),bDue=dueTime(b);if(rank)return rank;if(taskPriority(a)===1)return bDue-aDue;return aDue-bDue;});
+  const taskPriority=(a:typeof tasks[number])=>{const hours=(dueTime(a)-now)/3600000;return !Number.isFinite(hours)?4:hours>=0&&hours<=24?0:hours<=48&&hours>24?1:hours<0?2:3;};
+  const prioritizedTasks=[...unfinished].sort((a,b)=>{const rank=taskPriority(a)-taskPriority(b),aDue=dueTime(a),bDue=dueTime(b);if(rank)return rank;if(taskPriority(a)===2)return bDue-aDue;return aDue-bDue;});
+  const dashboardDeadlineBadge=(a:typeof tasks[number])=>{const urgency=taskUrgency(a,progressFor(ctx.data.progress,ctx.user.uid,a.assignment_id),"ALL",now);if(urgency==="urgent"||urgency==="soon"){const hours=Math.max(1,Math.ceil((dueTime(a)-now)/3600000));return badge(`เหลือ ${hours} ชม.`,urgency);}return urgency==="overdue"?badge("เลยกำหนดส่ง","overdue"):statusBadge(progressFor(ctx.data.progress,ctx.user.uid,a.assignment_id)?.status??"TODO");};
   const importantPosts=[...published].sort((a,b)=>Number(b.is_pinned)-Number(a.is_pinned)||(a.category==="official"?0:1)-(b.category==="official"?0:1)||b.created_at.localeCompare(a.created_at));
   const metrics=admin?[
     ["รออนุมัติ",ctx.data.post_counts?.pending ?? pending.length,"ตรวจสอบคำขอก่อนเผยแพร่","shield"],
@@ -23,14 +23,14 @@ export function renderDashboard(ctx:Context,admin=false) {
     ["งานใน 48 ชั่วโมง",tasks.filter(a=>["urgent","soon"].includes(taskUrgency(a))).length,"ตรวจสอบกำหนดส่ง","clock"]
   ]:[
     ["งานทั้งหมดที่ยังไม่ได้ส่ง",unfinished.length,"รวมทุกงานที่ยังต้องจัดการ","tasks"],
-    ["ต้องส่งภายใน 24 ชม.",dueWithin24,"ควรทำก่อนเพื่อรักษาคะแนนเต็ม","clock"],
+    ["ต้องส่งภายใน 48 ชม.",dueWithin48,"ควรทำก่อนเพื่อรักษาคะแนนเต็ม","clock"],
     ["เลยกำหนดส่ง",overdue,"งานที่ยังไม่ได้ส่งและพ้นกำหนดแล้ว","alert"]
   ];
   ctx.root.innerHTML=heading(admin?"ภาพรวมผู้ดูแลระบบ":"สวัสดี, "+ctx.user.full_name.split(" ")[0]+" 👋",admin?"จัดการข่าวสารและงานของรุ่นให้อยู่ในที่เดียว":"วันนี้มีอะไรที่ต้องทำบ้าง มาวางแผนการเรียนไปด้วยกัน",admin?"ADMIN WORKSPACE":"YOUR DAILY OVERVIEW",'<span class="date-label">'+icon("calendar")+e(formatDate(new Date(),false))+"</span>")+
   '<div class="stats-grid '+(admin?"":"student-stats")+'">'+metrics.map(([label,count,caption,glyph],index)=>`<div class="stat ${index===0?"accent":""}"><div class="stat-icon">${icon(String(glyph))}</div><span class="stat-label">${label}</span><strong>${count}<small>${admin&&index<2?"รายการ":"งาน"}</small></strong><div class="stat-footer">${caption}</div></div>`).join("")+'</div>'+
   `<div class="dashboard-grid"><section class="panel"><div class="panel-title"><h2>${admin?"รายการที่รอการตรวจสอบ":"งานที่ต้องจัดการ"}</h2><a class="button small subtle" href="${href(admin?"approvals":"assignments")}">ดูทั้งหมด ${icon("arrow")}</a></div>${admin?
     pending.length?pending.slice(0,5).map(p=>`<div class="mini-task"><div class="subject-icon">${icon("news")}</div><div class="mini-task-main"><a href="${href("postDetail",p.post_id)}">${e(p.title)}</a><small>เสนอโดย ${e(p.author_name)}</small></div>${badge("รออนุมัติ","pending")}</div>`).join(""):empty("จัดการคำขอครบแล้ว","ไม่มีประกาศรอการอนุมัติ"):
-    prioritizedTasks.length?prioritizedTasks.slice(0,5).map(a=>`<div class="mini-task"><div class="subject-icon">${icon("tasks")}</div><div class="mini-task-main"><a href="${href("assignmentDetail",a.assignment_id)}">${e(a.title)}</a><small>${e(a.subject_name)} · ${e(formatDate(dueTime(a)))}</small></div>${urgencyBadge(a) || statusBadge(progressFor(ctx.data.progress,ctx.user.uid,a.assignment_id)?.status??"TODO")}</div>`).join(""):empty("ทำงานครบแล้ว","ยังไม่มีงานที่ต้องจัดการในตอนนี้")}
+    prioritizedTasks.length?prioritizedTasks.slice(0,5).map(a=>`<div class="mini-task"><div class="subject-icon">${icon("tasks")}</div><div class="mini-task-main"><a href="${href("assignmentDetail",a.assignment_id)}">${e(a.title)}</a><small>${e(a.subject_name)} · ${e(formatDate(dueTime(a)))}</small></div>${dashboardDeadlineBadge(a)}</div>`).join(""):empty("ทำงานครบแล้ว","ยังไม่มีงานที่ต้องจัดการในตอนนี้")}
     ${!admin?'<p class="note-hint" style="margin-top:20px">สรุปจากทุกกลุ่มเรียน โดยใช้กำหนดส่งที่ใกล้ที่สุด เลือก Section ที่เรียนได้ในหน้ารายการงาน</p>':""}</section>
     <section class="panel"><div class="panel-title"><h2>ข่าวสำคัญของรุ่น</h2><a class="button small subtle" href="${href("official")}">ดูทั้งหมด</a></div>${importantPosts.slice(0,3).map(p=>`<a class="announcement-preview" href="${href("postDetail",p.post_id)}"><div class="announcement-badges">${p.is_pinned?badge("ปักหมุด","pin"):""}${badge(p.category==="official"?"ประกาศทางการ":"ข่าวทั่วไป",p.category)}</div><h3>${e(p.title)}</h3><p>${e(formatDate(p.created_at,false))}<br>เวลา ${e(formatTime(p.created_at))} น. · ${e(p.author_name)}</p></a>`).join("")||empty("ยังไม่มีประกาศ","ข่าวที่เผยแพร่แล้วจะแสดงที่นี่")}</section></div>
     ${admin?'<div class="actions" style="margin-top:24px"><a class="button primary" href="'+href("assignmentForm")+'">'+icon("plus")+' เพิ่มงาน</a><a class="button" href="'+href("adminPostForm")+'">'+icon("plus")+' สร้างประกาศ</a></div>':""}`;

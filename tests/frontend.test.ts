@@ -363,8 +363,9 @@ test("student dashboard summarizes unsubmitted work and prioritizes score-saving
   const now=Date.now(),source=ctx.data.assignments.slice(0,3);
   ctx.data.assignments=[
     {...source[0],assignment_id:"overdue-test",title:"งานเลยกำหนด",schedule_mode:"UNIFIED",due_dates:{all:new Date(now-2*3600000).toISOString()}},
-    {...source[1],assignment_id:"later-test",title:"งานส่งทีหลัง",schedule_mode:"UNIFIED",due_dates:{all:new Date(now+20*3600000).toISOString()}},
-    {...source[2],assignment_id:"nearest-test",title:"งานใกล้กำหนดที่สุด",schedule_mode:"UNIFIED",due_dates:{all:new Date(now+2*3600000).toISOString()}}
+    {...source[0],assignment_id:"later-test",title:"งานที่ยังมีเวลา",schedule_mode:"UNIFIED",due_dates:{all:new Date(now+72*3600000).toISOString()}},
+    {...source[1],assignment_id:"soon-test",title:"งานภายใน 48 ชั่วโมง",schedule_mode:"UNIFIED",due_dates:{all:new Date(now+36*3600000).toISOString()}},
+    {...source[2],assignment_id:"urgent-test",title:"งานภายใน 24 ชั่วโมง",schedule_mode:"UNIFIED",due_dates:{all:new Date(now+2*3600000).toISOString()}}
   ];
   ctx.data.progress=[];
   const general=ctx.data.posts.find(post=>post.category==="general")!;
@@ -373,11 +374,14 @@ test("student dashboard summarizes unsubmitted work and prioritizes score-saving
   const stats=ctx.root.querySelector(".stats-grid")?.textContent ?? "";
   assert.equal(ctx.root.querySelectorAll(".stats-grid .stat").length,3);
   assert.match(stats,/งานทั้งหมดที่ยังไม่ได้ส่ง/);
-  assert.match(stats,/ต้องส่งภายใน 24 ชม\./);
+  assert.match(stats,/ต้องส่งภายใน 48 ชม\./);
   assert.match(stats,/เลยกำหนดส่ง/);
   assert.doesNotMatch(stats,/24–48|กำลังทำ|ทำเสร็จแล้ว/);
-  const taskTitles=[...ctx.root.querySelectorAll<HTMLAnchorElement>(".dashboard-grid>section:first-child .mini-task-main>a")].map(link=>link.textContent);
-  assert.deepEqual(taskTitles,["งานใกล้กำหนดที่สุด","งานส่งทีหลัง","งานเลยกำหนด"]);
+  const taskRows=[...ctx.root.querySelectorAll<HTMLElement>(".dashboard-grid>section:first-child .mini-task")];
+  assert.deepEqual(taskRows.map(row=>row.querySelector("a")?.textContent),["งานภายใน 24 ชั่วโมง","งานภายใน 48 ชั่วโมง","งานเลยกำหนด","งานที่ยังมีเวลา"]);
+  assert.match(taskRows[0].querySelector(".badge")!.textContent!,/เหลือ 2 ชม\./);
+  assert.match(taskRows[1].querySelector(".badge")!.textContent!,/เหลือ 36 ชม\./);
+  assert.ok(taskRows[0].querySelector(".badge.urgent"));assert.ok(taskRows[1].querySelector(".badge.soon"));
   assert.ok(ctx.root.querySelector(".announcement-preview .badge.pin"));
   assert.ok(ctx.root.querySelector(".announcement-preview .badge.general"));
 });

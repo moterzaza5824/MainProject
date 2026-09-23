@@ -94,6 +94,9 @@ label>input,label>select,label>textarea{margin-top:7px}
 .mini-task-main{flex:1;min-width:0}
 .mini-task-main>a{font-size:14px;font-weight:600;color:var(--ink)}
 .mini-task-main>small{display:block;color:var(--muted);margin-top:3px}
+.dashboard-grid .mini-task>.badge.urgent,.dashboard-grid .mini-task>.badge.soon{padding:5px 9px;font-weight:700}
+.dashboard-grid .mini-task>.badge.urgent{color:#a92f2a;background:#ffe8e5;border-color:#f1aaa4;box-shadow:inset 3px 0 #df4c43}
+.dashboard-grid .mini-task>.badge.soon{color:#8b5700;background:#fff2cc;border-color:#edc66c;box-shadow:inset 3px 0 #e4a72c}
 .badge{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:600;white-space:nowrap;color:#4c6153;background:#edf2ef;border:1px solid transparent}
 .badge.todo{color:#526058;background:#eef1ef}
 .badge.doing,.badge.soon{color:#95610b;background:#fff4da}
