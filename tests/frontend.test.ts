@@ -215,6 +215,19 @@ test("post cards lead with the author, keep context at the top, and place images
   assert.match(document.querySelector(".post-card-flags")!.textContent!,/ทุก Sec/);
 });
 
+test("post cards expose safe attachment links without opening post details", () => {
+  const post=createSeed().posts.find(row=>row.post_id==="general-study")!;
+  document.querySelector("#app")!.innerHTML=postCard(post);
+  const card=document.querySelector<HTMLElement>(".post-card")!;
+  const attachment=card.querySelector<HTMLAnchorElement>(".post-card-attachments .resource-link")!;
+  assert.ok(attachment);
+  assert.match(attachment.textContent!,/เอกสาร PostgreSQL/);
+  assert.equal(attachment.href,"https://www.postgresql.org/docs/current/tutorial.html");
+  assert.equal(attachment.target,"_blank");assert.match(attachment.rel,/noopener/);
+  const children=[...card.children];
+  assert.ok(children.indexOf(card.querySelector(".post-card-attachments")!)<children.indexOf(card.querySelector(".post-card-footer")!));
+});
+
 test("long post copy expands and feed images open with post details", async () => {
   const ctx=await context(),raw=JSON.parse(localStorage.getItem("se68-demo-data-v1")!),longContent="รายละเอียดข่าวสารที่ควรอ่านให้ครบก่อนเข้าร่วมกิจกรรม ".repeat(12);
   raw.posts=raw.posts.map((post:any)=>post.category==="general"?{...post,content:longContent,image_url:"https://example.com/tall-poster.jpg"}:post);
