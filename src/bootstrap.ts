@@ -10,6 +10,9 @@ import { renderTasks, renderTaskDetail } from "./views/tasks";
 import { renderPostDetail, renderPosts } from "./views/posts";
 import { renderAssignmentForm, renderPostForm } from "./views/forms";
 import { renderCatalog } from "./views/catalog";
+import { renderEnrollment } from "./views/enrollment";
+import { loadCatalog } from "./services/catalog";
+import { applyStudentVisibility, canViewPostForEnrollments, loadEnrollments } from "./services/enrollment";
 async function bootstrap() {
   const root=document.querySelector<HTMLElement>("#app")!;
   root.innerHTML='<div class="loading" role="status">กำลังเตรียมพื้นที่ของคุณ…</div>';
@@ -24,16 +27,25 @@ async function bootstrap() {
       renderAuth(root,repo);return;
     }
     if(!user){location.replace(href("login"));return;}
+    if(route==="enrollment"&&user.role!=="student"){location.replace(href("dashboard"));return;}
     const isAdmin=["admin","approvals","adminPosts","adminPostForm","adminAssignments","assignmentForm","adminCatalog"].includes(route);
     if(isAdmin&&user.role!=="admin"){location.replace(href("denied"));return;}
     let active=route==="assignmentDetail"?"assignments":route==="postDetail"||route==="postForm"||route==="general"?"official":route==="adminPostForm"?"adminPosts":route==="assignmentForm"?"adminAssignments":route;
     const content=mountShell(user,active,repo);
     try {
-      const data=await repo.snapshot();
+      const enrollments=user.role==="student"?loadEnrollments(user.uid):undefined;
+      const loadData=async()=>{
+        const raw=await repo.snapshot();
+        if(user.role!=="student"||!enrollments)return raw;
+        const feed=await repo.listPosts({status:"published",pageSize:15,enrollments});
+        raw.posts=[...new Map([...raw.posts,...feed.rows].map(post=>[post.post_id,post])).values()];
+        return applyStudentVisibility(raw,user,enrollments,loadCatalog(raw.assignments));
+      };
+      let data=await loadData();
       const postId = new URLSearchParams(location.search).get("id");
       if (postId && ["postDetail","postForm","adminPostForm"].includes(route)) {
         const post = await repo.getPost(postId);
-        if (post) data.posts = [...data.posts.filter(p => p.post_id !== postId), post];
+        if (post&&(user.role!=="student"||!enrollments||canViewPostForEnrollments(post,enrollments,user.uid))) data.posts = [...data.posts.filter(p => p.post_id !== postId), post];
       }
       const selectedPost=data.posts.find(p=>p.post_id===postId);
       const reviewerName=selectedPost?.approved_by ? await repo.getReviewerName(selectedPost.approved_by) : null;
@@ -43,12 +55,13 @@ async function bootstrap() {
           if(link.getAttribute("href")===href(active))link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
         });
       }
-      const ctx:Context={root:content,repo,user,data,reviewerName,async refresh(){ctx.data=await repo.snapshot();}};
+      const ctx:Context={root:content,repo,user,data,enrollments,reviewerName,async refresh(){ctx.data=await loadData();}};
       switch(route){
         case "dashboard":renderDashboard(ctx);break;
         case "admin":renderDashboard(ctx,true);break;
         case "assignments":renderTasks(ctx);break;
         case "calendar":renderTasks(ctx,true);break;
+        case "enrollment":renderEnrollment(ctx);break;
         case "assignmentDetail":renderTaskDetail(ctx);break;
         case "official":renderPosts(ctx,"official");break;
         case "general":renderPosts(ctx,"general");break;

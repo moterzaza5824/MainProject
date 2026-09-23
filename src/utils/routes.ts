@@ -2,7 +2,7 @@ export const routes = {
   login: "/pages/auth/login/", denied: "/pages/auth/access-denied/", dashboard: "/pages/dashboard/",
   official: "/pages/posts/official/", general: "/pages/posts/general/", requests: "/pages/posts/requests/", postForm: "/pages/posts/create/",
   postDetail: "/pages/posts/detail/", assignments: "/pages/assignments/", assignmentDetail: "/pages/assignments/detail/",
-  calendar: "/pages/calendar/", profile: "/pages/profile/", admin: "/pages/admin/dashboard/",
+  calendar: "/pages/calendar/", enrollment: "/pages/enrollment/", profile: "/pages/profile/", admin: "/pages/admin/dashboard/",
   approvals: "/pages/admin/approvals/", adminPosts: "/pages/admin/posts/", adminPostForm: "/pages/admin/posts/form/",
   adminAssignments: "/pages/admin/assignments/", assignmentForm: "/pages/admin/assignments/form/",
   adminCatalog: "/pages/admin/catalog/"

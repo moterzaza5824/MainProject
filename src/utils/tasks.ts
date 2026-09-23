@@ -1,13 +1,14 @@
 import type { AssignmentRow, ProgressRow, Section } from "../types/models";
 export function matchesSection(task: AssignmentRow, section: Section): boolean {
-  return section === "ALL" || task.schedule_mode === "UNIFIED" || !!task.due_dates[section === "1" ? "sec_1" : "sec_2"];
+  return section === "ALL" || task.schedule_mode === "UNIFIED" || !!task.due_dates[`sec_${Number(section)}`];
 }
 export function dueEntries(task: AssignmentRow, section: Section = "ALL"): [string, string][] {
   if (task.schedule_mode === "UNIFIED") return task.due_dates.all ? [["ทั้งรุ่น", task.due_dates.all]] : [];
-  const entries: [string, string][] = [];
-  if (task.due_dates.sec_1 && section !== "2") entries.push(["Sec 1", task.due_dates.sec_1]);
-  if (task.due_dates.sec_2 && section !== "1") entries.push(["Sec 2", task.due_dates.sec_2]);
-  return entries;
+  return Object.entries(task.due_dates)
+    .filter((entry):entry is [string,string]=>/^sec_[1-9][0-9]*$/.test(entry[0])&&!!entry[1])
+    .map(([key,date])=>[Number(key.slice(4)),date] as const)
+    .filter(([number])=>section==="ALL"||number===Number(section))
+    .sort((a,b)=>a[0]-b[0]).map(([number,date])=>[`Sec ${number}`,date]);
 }
 export function dueTime(task: AssignmentRow, section: Section = "ALL"): number {
   const values = dueEntries(task, section).map(([, value]) => Date.parse(value)).filter(Number.isFinite);

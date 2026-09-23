@@ -9,6 +9,7 @@ import { icon } from "../ui/icons";
 import { validateAssignment, validatePost } from "../services/repository";
 import { guardDirty } from "../utils/dirty-form";
 import { loadCatalog } from "../services/catalog";
+import { semesterLabel } from "../services/enrollment";
 function errorIn(form:HTMLFormElement,error:unknown){
   const element=form.querySelector<HTMLElement>("[data-error]")!;
   element.hidden=false;element.textContent=error instanceof Error?error.message:"ไม่สามารถบันทึกได้ กรุณาลองใหม่";element.focus();
@@ -17,9 +18,10 @@ export function renderPostForm(ctx:Context){
   const id=new URLSearchParams(location.search).get("id")??undefined, post=ctx.data.posts.find(p=>p.post_id===id);
   if(id&&(!post||(post.author_id!==ctx.user.uid&&ctx.user.role!=="admin"))){ctx.root.innerHTML=empty("ไม่สามารถแก้ไขประกาศ","ไม่พบประกาศหรือคุณไม่มีสิทธิ์");return;}
   const catalog=loadCatalog(ctx.data.assignments);
-  const matchedSubject=catalog.subjects.find(row=>row.id===post?.subject_id)||catalog.subjects.find(row=>row.name===post?.subject_name);
+  const availableSubjects=ctx.user.role==="student"&&ctx.enrollments?catalog.subjects.filter(row=>ctx.enrollments!.some(enrollment=>enrollment.subject_id===row.id)):catalog.subjects;
+  const matchedSubject=availableSubjects.find(row=>row.id===post?.subject_id)||availableSubjects.find(row=>row.name===post?.subject_name);
   const selectedSubject=matchedSubject?.id??(post?.subject_name?"legacy-subject":"");
-  const subjectOptions=(post?.subject_name&&selectedSubject==="legacy-subject"?`<option value="legacy-subject" selected>${e(post.subject_name)} · ข้อมูลเดิม</option>`:"")+catalog.subjects.map(row=>`<option value="${e(row.id)}" ${row.id===selectedSubject?"selected":""}>${e(row.name)} · ปีการศึกษา ${row.academicYear} · ${row.sectionCount} Sec</option>`).join("");
+  const subjectOptions=(post?.subject_name&&selectedSubject==="legacy-subject"?`<option value="legacy-subject" selected>${e(post.subject_name)} · ข้อมูลเดิม</option>`:"")+availableSubjects.map(row=>`<option value="${e(row.id)}" ${row.id===selectedSubject?"selected":""}>${e(row.name)} · ปี ${row.academicYear} · ${e(semesterLabel(row.semester))} · ${row.sectionCount} Sec</option>`).join("");
   const initialAudience=post?.subject_name?(post.target_scope==="SPECIFIC"&&post.target_sections.length===1?`SEC:${post.target_sections[0]}`:"ALL"):"";
   ctx.root.innerHTML=heading(id?"แก้ไขประกาศ":"สร้างประกาศ",ctx.user.role==="admin"?"เผยแพร่และจัดการข่าวสารของรุ่น":"แบ่งปันข่าวสาร หรือเสนอเป็นประกาศทางการ","WRITE AN ANNOUNCEMENT",'<a class="button" href="'+href(ctx.user.role==="admin"?"adminPosts":"official")+'">'+icon("left")+' กลับ</a>')+
   `<form class="panel form-panel" id="post-form"><div data-error class="form-error" role="alert" tabindex="-1" hidden></div>
@@ -34,7 +36,7 @@ export function renderPostForm(ctx:Context){
   const categorySelect=form.elements.namedItem("category") as HTMLSelectElement;
   const subjectSelect=form.elements.namedItem("subject_id") as HTMLSelectElement;
   const audienceSelect=form.elements.namedItem("audience") as HTMLSelectElement;
-  const subjectFor=(value:string)=>value==="legacy-subject"&&post?.subject_name?{id:post.subject_id??"legacy-subject",name:post.subject_name,academicYear:new Date().getFullYear()+543,sectionCount:Math.max(2,...post.target_sections)}:catalog.subjects.find(row=>row.id===value);
+  const subjectFor=(value:string)=>value==="legacy-subject"&&post?.subject_name?{id:post.subject_id??"legacy-subject",name:post.subject_name,academicYear:new Date().getFullYear()+543,semester:"1" as const,sectionCount:Math.max(2,...post.target_sections)}:availableSubjects.find(row=>row.id===value);
   const renderAudience=(desired=audienceSelect.value||initialAudience)=>{
     const subject=subjectFor(subjectSelect.value);
     if(!subject){audienceSelect.innerHTML='<option value="">เลือกรายวิชาก่อน</option>';audienceSelect.disabled=true;audienceSelect.required=false;return;}
@@ -73,27 +75,35 @@ export function renderAssignmentForm(ctx:Context){
   const id=new URLSearchParams(location.search).get("id")??undefined,task=ctx.data.assignments.find(a=>a.assignment_id===id);
   if(id&&!task){ctx.root.innerHTML=empty("ไม่พบงานนี้","กลับไปหน้าจัดการงานเพื่อเลือกรายการอีกครั้ง");return;}
   const catalog=loadCatalog(ctx.data.assignments);
-  const selectedSubject=catalog.subjects.find(row=>row.name===task?.subject_name)?.id??(task?"legacy-subject":"");
+  const selectedSubject=catalog.subjects.find(row=>row.id===task?.subject_id)?.id??catalog.subjects.find(row=>row.name===task?.subject_name&&(!task?.academic_year||row.academicYear===task.academic_year)&&(!task?.semester||row.semester===task.semester))?.id??(task?"legacy-subject":"");
   const selectedChannel=catalog.channels.find(row=>row.name===task?.submission_channel)?.id??(task?"legacy-channel":"");
-  const subjectOptions=(task&&selectedSubject==="legacy-subject"?'<option value="legacy-subject" selected>'+e(task.subject_name)+' · ข้อมูลเดิม</option>':"")+catalog.subjects.map(row=>`<option value="${e(row.id)}" ${row.id===selectedSubject?"selected":""}>${e(row.name)} · ปีการศึกษา ${row.academicYear} · ${row.sectionCount} Sec</option>`).join("");
+  const subjectOptions=(task&&selectedSubject==="legacy-subject"?'<option value="legacy-subject" selected>'+e(task.subject_name)+' · ข้อมูลเดิม</option>':"")+catalog.subjects.map(row=>`<option value="${e(row.id)}" ${row.id===selectedSubject?"selected":""}>${e(row.name)} · ปี ${row.academicYear} · ${e(semesterLabel(row.semester))} · ${row.sectionCount} Sec</option>`).join("");
   const channelOptions=(task&&selectedChannel==="legacy-channel"?'<option value="legacy-channel" selected>'+e(task.submission_channel)+' · ข้อมูลเดิม</option>':"")+catalog.channels.map(row=>`<option value="${e(row.id)}" ${row.id===selectedChannel?"selected":""}>${e(row.name)}</option>`).join("");
   const missing=!catalog.subjects.length||!catalog.channels.length;
   ctx.root.innerHTML=heading(id?"แก้ไขงาน":"เพิ่มงานและการบ้าน","เลือกรายวิชาและช่องทางส่งจากข้อมูลพื้นฐาน แล้วกำหนดรายละเอียดของงาน","ASSIGNMENT EDITOR",'<div class="actions"><a class="button" href="'+href("adminAssignments")+'">'+icon("left")+' จัดการงาน</a><a class="button" href="'+href("adminCatalog")+'">'+icon("book")+' ข้อมูลพื้นฐาน</a></div>')+
   `<form class="panel form-panel" id="assignment-form"><div class="form-error" data-error role="alert" tabindex="-1" hidden></div>
   ${missing?'<div class="info-box">ต้องเพิ่มรายวิชาและช่องทางส่งงานให้ครบก่อนสร้างงานใหม่ <a href="'+href("adminCatalog")+'">ไปที่ข้อมูลพื้นฐาน</a></div>':""}
   <section class="form-section"><h2>รายละเอียดงาน</h2><div class="form-row"><label class="field">รายวิชา *<select name="subject_id" required><option value="">เลือกรายวิชา</option>${subjectOptions}</select><small id="subject-summary">เลือกรายวิชาที่เพิ่มไว้ในหน้าข้อมูลพื้นฐาน</small></label><label class="field">ช่องทางส่งงาน *<select name="channel_id" required><option value="">เลือกช่องทางส่งงาน</option>${channelOptions}</select><small>หากยังไม่มีตัวเลือก ให้เพิ่มในหน้าข้อมูลพื้นฐานก่อน</small></label></div><label class="field">ชื่องาน *<input name="title" required maxlength="160" value="${e(task?.title??"")}" placeholder="Lab 4: Inheritance"></label><label class="field">คำอธิบาย *<textarea name="description" required maxlength="10000" rows="7">${e(task?.description??"")}</textarea></label></section>
-  <section class="form-section"><h2>กำหนดส่ง</h2><label class="field">รูปแบบกำหนดส่ง<select name="mode"><option value="UNIFIED" ${task?.schedule_mode!=="SPLIT"?"selected":""}>รวมทั้งรุ่น (UNIFIED)</option><option value="SPLIT" ${task?.schedule_mode==="SPLIT"?"selected":""}>แยกกลุ่มเรียน (SPLIT)</option></select></label><div id="unified-fields"><label class="field">กำหนดส่งทั้งรุ่น *<input name="all" type="datetime-local" value="${e(thaiInput(task?.due_dates.all))}"></label></div><div id="split-fields" class="form-row"><label class="field">Sec 1<input name="sec_1" type="datetime-local" value="${e(thaiInput(task?.due_dates.sec_1))}"><small>เว้นว่างถ้างานไม่เกี่ยวข้องกับ Sec 1</small></label><label class="field">Sec 2<input name="sec_2" type="datetime-local" value="${e(thaiInput(task?.due_dates.sec_2))}"><small>เว้นว่างถ้างานไม่เกี่ยวข้องกับ Sec 2</small></label></div><p class="note-hint">ทุกเวลาที่กรอกเป็นเวลาไทย (UTC+7) · SPLIT ต้องมีวันส่งอย่างน้อยหนึ่งกลุ่มเรียน</p></section>
+  <section class="form-section"><h2>กำหนดส่ง</h2><label class="field">รูปแบบกำหนดส่ง<select name="mode"><option value="UNIFIED" ${task?.schedule_mode!=="SPLIT"?"selected":""}>รวมทุก Sec ของวิชา (UNIFIED)</option><option value="SPLIT" ${task?.schedule_mode==="SPLIT"?"selected":""}>แยกกลุ่มเรียน (SPLIT)</option></select></label><div id="unified-fields"><label class="field">กำหนดส่งทุก Sec *<input name="all" type="datetime-local" value="${e(thaiInput(task?.due_dates.all))}"></label></div><div id="split-fields" class="form-row"></div><p class="note-hint">ทุกเวลาที่กรอกเป็นเวลาไทย (UTC+7) · ช่อง Sec จะสร้างตามรายวิชาที่เลือก และต้องมีวันส่งอย่างน้อยหนึ่งกลุ่ม</p></section>
   <section class="form-section"><h2>ลิงก์โจทย์และทรัพยากร</h2><label class="field">URL เอกสาร<textarea name="resources" rows="3" placeholder="https://…\nหนึ่งลิงก์ต่อหนึ่งบรรทัด">${e(task?.resources.join("\n")??"")}</textarea><small>ใช้ลิงก์ภายนอกแทนการอัปโหลดไฟล์</small></label></section><div class="form-footer"><a class="button" href="${href("adminAssignments")}">ยกเลิก</a><button class="button primary" type="submit">${icon("check")} ${id?"บันทึกการแก้ไข":"เพิ่มงาน"}</button></div></form>`;
   const form=ctx.root.querySelector<HTMLFormElement>("#assignment-form")!,clearDirty=guardDirty(form);
   const subjectSelect=form.elements.namedItem("subject_id") as HTMLSelectElement;
-  const updateSubjectSummary=()=>{const row=catalog.subjects.find(item=>item.id===subjectSelect.value);form.querySelector("#subject-summary")!.textContent=row?`ปีการศึกษา ${row.academicYear} · ${row.sectionCount} Sec`:"เลือกรายวิชาที่เพิ่มไว้ในหน้าข้อมูลพื้นฐาน";};
-  subjectSelect.onchange=updateSubjectSummary;updateSubjectSummary();
+  const splitFields=form.querySelector<HTMLElement>("#split-fields")!;
+  const legacySections=Math.max(2,...Object.keys(task?.due_dates??{}).filter(key=>key.startsWith("sec_")).map(key=>Number(key.slice(4))));
+  const selectedCatalog=()=>catalog.subjects.find(item=>item.id===subjectSelect.value);
+  const renderSplitFields=()=>{
+    const values=new Map([...splitFields.querySelectorAll<HTMLInputElement>('input[name^="sec_"]')].map(input=>[input.name,input.value]));
+    const count=selectedCatalog()?.sectionCount??(subjectSelect.value==="legacy-subject"?legacySections:2);
+    splitFields.innerHTML=count?Array.from({length:count},(_,index)=>{const key=`sec_${index+1}`,value=values.get(key)??thaiInput(task?.due_dates[key as `sec_${number}`]);return `<label class="field">Sec ${index+1}<input name="${key}" type="datetime-local" value="${e(value)}"><small>เว้นว่างถ้างานไม่เกี่ยวข้องกับ Sec ${index+1}</small></label>`;}).join(""):'<p class="note-hint">เลือกรายวิชาก่อนเพื่อสร้างช่องกำหนดส่งตามจำนวน Sec</p>';
+  };
+  const updateSubject=()=>{const row=selectedCatalog();form.querySelector("#subject-summary")!.textContent=row?`ปี ${row.academicYear} · ${semesterLabel(row.semester)} · ${row.sectionCount} Sec`:"เลือกรายวิชาที่เพิ่มไว้ในหน้าข้อมูลพื้นฐาน";renderSplitFields();toggle();};
   const toggle=()=>{
     const unified=(form.elements.namedItem("mode") as HTMLSelectElement).value==="UNIFIED";
     form.querySelector<HTMLElement>("#unified-fields")!.hidden=!unified;form.querySelector<HTMLElement>("#split-fields")!.hidden=unified;
     (form.elements.namedItem("all") as HTMLInputElement).disabled=!unified;(form.elements.namedItem("all") as HTMLInputElement).required=unified;
-    ["sec_1","sec_2"].forEach(key=>(form.elements.namedItem(key) as HTMLInputElement).disabled=unified);
-  };(form.elements.namedItem("mode") as HTMLSelectElement).onchange=toggle;toggle();
+    splitFields.querySelectorAll<HTMLInputElement>('input[name^="sec_"]').forEach(input=>input.disabled=unified);
+  };
+  subjectSelect.onchange=updateSubject;(form.elements.namedItem("mode") as HTMLSelectElement).onchange=toggle;renderSplitFields();updateSubject();
   form.onsubmit=async event=>{
     event.preventDefault();const button=form.querySelector<HTMLButtonElement>("[type=submit]")!;if(button.disabled)return;button.disabled=true;
     try{
@@ -101,8 +111,9 @@ export function renderAssignmentForm(ctx:Context){
       const subject=catalog.subjects.find(row=>row.id===String(fd.get("subject_id"))),channel=catalog.channels.find(row=>row.id===String(fd.get("channel_id")));
       const subjectName=subject?.name??(fd.get("subject_id")==="legacy-subject"?task?.subject_name:""),channelName=channel?.name??(fd.get("channel_id")==="legacy-channel"?task?.submission_channel:"");
       if(!subjectName||!channelName)throw new Error("กรุณาเลือกรายวิชาและช่องทางส่งงานจากข้อมูลพื้นฐาน");
-      for(const key of(mode==="UNIFIED"?["all"]:["sec_1","sec_2"]) as (keyof AssignmentInput["due_dates"])[]){const value=String(fd.get(key)??"");if(value)dates[key]=fromThaiInput(value);}
-      const input:AssignmentInput={subject_name:subjectName,title:String(fd.get("title")).trim(),description:String(fd.get("description")).trim(),submission_channel:channelName,schedule_mode:mode,due_dates:dates,resources:String(fd.get("resources")).split("\n").map(s=>s.trim()).filter(Boolean)};
+      const keys=mode==="UNIFIED"?["all"]:[...splitFields.querySelectorAll<HTMLInputElement>('input[name^="sec_"]')].map(input=>input.name);
+      for(const key of keys){const value=String(fd.get(key)??"");if(value)dates[key as keyof AssignmentInput["due_dates"]]=fromThaiInput(value);}
+      const input:AssignmentInput={subject_id:subject?.id??task?.subject_id??null,subject_name:subjectName,academic_year:subject?.academicYear??task?.academic_year??null,semester:subject?.semester??task?.semester??null,title:String(fd.get("title")).trim(),description:String(fd.get("description")).trim(),submission_channel:channelName,schedule_mode:mode,due_dates:dates,resources:String(fd.get("resources")).split("\n").map(s=>s.trim()).filter(Boolean)};
       validateAssignment(input);const saved=await ctx.repo.saveAssignment(input,id);clearDirty();navigate("assignmentDetail",saved.assignment_id);
     }catch(error){errorIn(form,error);button.disabled=false;}
   };

@@ -27,6 +27,7 @@ export default defineConfig({
         assignments: page("assignments"),
         assignmentDetail: page("assignments/detail"),
         calendar: page("calendar"),
+        enrollment: page("enrollment"),
         profile: page("profile"),
         adminDashboard: page("admin/dashboard"),
         adminApprovals: page("admin/approvals"),

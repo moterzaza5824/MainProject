@@ -11,6 +11,9 @@ import { renderPostForm, renderAssignmentForm } from "../src/views/forms";
 import { renderDashboard, renderProfile, renderAdminTasks } from "../src/views/overview";
 import { renderAuth } from "../src/views/auth";
 import { renderCatalog } from "../src/views/catalog";
+import { renderEnrollment } from "../src/views/enrollment";
+import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
+import { loadCatalog } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
 import type { PostInput, AssignmentInput, ProgressRow } from "../src/types/models";
@@ -339,7 +342,7 @@ test("master data page adds subject and channel choices used by the assignment f
   (channelForm.elements.namedItem("name") as HTMLInputElement).value="Moodle";
   channelForm.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
   renderAssignmentForm(ctx);
-  assert.match((ctx.root.querySelector('[name="subject_id"]') as HTMLSelectElement).textContent!,/Discrete Mathematics · ปีการศึกษา 2569 · 3 Sec/);
+  assert.match((ctx.root.querySelector('[name="subject_id"]') as HTMLSelectElement).textContent!,/Discrete Mathematics · ปี 2569 · ภาคเรียนที่ 1 · 3 Sec/);
   assert.match((ctx.root.querySelector('[name="channel_id"]') as HTMLSelectElement).textContent!,/Moodle/);
 });
 
@@ -356,6 +359,21 @@ test("all page renderers provide content for both roles and missing records", as
     renderTaskDetail(ctx);assert.match(ctx.root.textContent!,/ไม่พบงาน/);
     win.location.href="http://localhost:5173/pages/dashboard/";
   }
+});
+
+test("student enrollment stores one section per course and filters assignments and official news", async () => {
+  const ctx=await context("student"),catalog=loadCatalog(ctx.data.assignments),oop=catalog.subjects.find(row=>row.name==="Object-Oriented Programming")!;
+  saveEnrollment(ctx.user.uid,oop,1);
+  const enrollments=loadEnrollments(ctx.user.uid);
+  assert.equal(enrollments.length,1);assert.equal(enrollments[0].section,1);assert.equal(enrollments[0].semester,"1");
+  const filtered=applyStudentVisibility(await repo.snapshot(),ctx.user,enrollments,catalog);
+  assert.ok(filtered.assignments.length>0);assert.ok(filtered.assignments.every(task=>task.subject_name==="Object-Oriented Programming"));
+  assert.equal(filtered.assignments.find(task=>task.assignment_id==="oop-lab4")?.due_dates.sec_2,undefined);
+  assert.ok(filtered.posts.some(post=>post.category==="general"));
+  assert.ok(filtered.posts.some(post=>post.post_id==="official-lab"));
+  assert.equal(filtered.posts.some(post=>post.post_id==="official-exam"),false);
+  ctx.enrollments=enrollments;renderEnrollment(ctx);
+  assert.match(ctx.root.textContent!,/ลงทะเบียนแล้ว 1 วิชา/);assert.match(ctx.root.textContent!,/Sec 1/);
 });
 
 test("student dashboard summarizes unsubmitted work and prioritizes score-saving deadlines", async () => {
@@ -399,7 +417,7 @@ test("sidebar collapse preference persists and active menu is correct", async ()
   assert.match(document.querySelector('[aria-current="page"]')!.textContent!,/งานและการบ้าน/);
   assert.ok(document.querySelector('a[href="/pages/posts/requests/"]'));
   const studentMenu=[...document.querySelectorAll<HTMLAnchorElement>("#sidebar-nav>a")].map(link=>link.textContent!.trim());
-  assert.deepEqual(studentMenu.slice(0,5),["ภาพรวม","ข่าวสาร","งานและการบ้าน","ปฏิทิน","คำขอประกาศของฉัน"]);
+  assert.deepEqual(studentMenu.slice(0,6),["ภาพรวม","ข่าวสาร","งานและการบ้าน","ปฏิทิน","รายวิชาของฉัน","คำขอประกาศของฉัน"]);
   document.querySelector<HTMLButtonElement>("#collapse-menu")!.click();
   assert.equal(localStorage.getItem("se68-sidebar-collapsed"),"true");
   assert.ok(document.body.classList.contains("sidebar-collapsed"));

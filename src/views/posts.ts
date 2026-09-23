@@ -34,7 +34,7 @@ export function renderPosts(ctx: Context, initialCategory: "official" | "general
     const token=++request;
     results.innerHTML='<div class="loading" role="status">กำลังโหลดประกาศ…</div>';
     try {
-    const result=await ctx.repo.listPosts({own:requests?true:own||undefined,page,pageSize:10,
+    const result=await ctx.repo.listPosts({own:requests?true:own||undefined,page,pageSize:10,enrollments:ctx.user.role==="student"?ctx.enrollments:undefined,
       ...(requests?{category:"official" as const,status:tab as "pending"|"rejected"}:approval?(tab==="pending"?{status:"pending" as const}:{processed:true}):!admin?{...(boardCategory==="all"?{}:{category:boardCategory}),status:"published" as const}:{})});
     if(token!==request)return;
     const pages=Math.max(1,Math.ceil(result.total/10));

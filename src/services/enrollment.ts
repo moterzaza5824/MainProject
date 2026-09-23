@@ -1,0 +1,48 @@
+import type { AssignmentRow, EnrollmentRow, PostRow, Snapshot, UserRow } from "../types/models";
+import type { MasterCatalog, SubjectCatalogRow } from "./catalog";
+
+const STORE = "se68-student-enrollments-v1";
+
+const read = ():EnrollmentRow[] => {
+  try {
+    const parsed=JSON.parse(localStorage.getItem(STORE)??"[]") as unknown;
+    if(!Array.isArray(parsed))return [];
+    return parsed.filter((row):row is EnrollmentRow=>!!row&&typeof row==="object"&&typeof row.enrollment_id==="string"&&typeof row.uid==="string"&&typeof row.subject_id==="string"&&Number.isInteger(row.academic_year)&&["1","2","summer"].includes(row.semester)&&Number.isInteger(row.section)&&row.section>0);
+  } catch { return []; }
+};
+const write=(rows:EnrollmentRow[])=>{
+  try { localStorage.setItem(STORE,JSON.stringify(rows)); }
+  catch { throw new Error("ไม่สามารถบันทึกการลงทะเบียนในเบราว์เซอร์นี้ได้"); }
+};
+export const semesterLabel=(semester:SubjectCatalogRow["semester"])=>semester==="summer"?"ภาคฤดูร้อน":`ภาคเรียนที่ ${semester}`;
+export const loadEnrollments=(uid:string)=>read().filter(row=>row.uid===uid);
+export function saveEnrollment(uid:string,subject:SubjectCatalogRow,section:number):EnrollmentRow[] {
+  if(!Number.isInteger(section)||section<1||section>subject.sectionCount)throw new Error("กรุณาเลือก Sec ที่มีอยู่ในรายวิชานี้");
+  const rows=read(),now=new Date().toISOString(),old=rows.find(row=>row.uid===uid&&row.subject_id===subject.id);
+  const saved:EnrollmentRow={enrollment_id:old?.enrollment_id??crypto.randomUUID(),uid,subject_id:subject.id,academic_year:subject.academicYear,semester:subject.semester,section,created_at:old?.created_at??now,updated_at:now};
+  write([...rows.filter(row=>!(row.uid===uid&&row.subject_id===subject.id)),saved]);
+  return loadEnrollments(uid);
+}
+export function removeEnrollment(uid:string,subjectId:string):EnrollmentRow[] {
+  write(read().filter(row=>!(row.uid===uid&&row.subject_id===subjectId)));
+  return loadEnrollments(uid);
+}
+const subjectForAssignment=(task:AssignmentRow,catalog:MasterCatalog)=>task.subject_id?catalog.subjects.find(row=>row.id===task.subject_id):catalog.subjects.find(row=>row.name===task.subject_name&&(!task.academic_year||row.academicYear===task.academic_year)&&(!task.semester||row.semester===task.semester));
+export function canViewPostForEnrollments(post:PostRow,enrollments:EnrollmentRow[],uid?:string):boolean {
+  if(post.author_id===uid||post.category==="general")return true;
+  if(!post.subject_id)return false;
+  const enrollment=enrollments.find(row=>row.subject_id===post.subject_id);
+  return !!enrollment&&(post.target_scope==="ALL"||post.target_sections.includes(enrollment.section));
+}
+export function applyStudentVisibility(data:Snapshot,user:UserRow,enrollments:EnrollmentRow[],catalog:MasterCatalog):Snapshot {
+  if(user.role!=="student")return data;
+  const assignments=data.assignments.flatMap(task=>{
+    const subject=subjectForAssignment(task,catalog),enrollment=subject&&enrollments.find(row=>row.subject_id===subject.id);
+    if(!enrollment)return [];
+    if(task.schedule_mode==="UNIFIED")return [task];
+    const due=task.due_dates[`sec_${enrollment.section}`];
+    return due?[{...task,due_dates:{[`sec_${enrollment.section}`]:due}}]:[];
+  });
+  const visibleIds=new Set(assignments.map(task=>task.assignment_id));
+  return {...data,assignments,posts:data.posts.filter(post=>canViewPostForEnrollments(post,enrollments,user.uid)),progress:data.progress.filter(row=>visibleIds.has(row.assignment_id))};
+}

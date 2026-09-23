@@ -39,7 +39,8 @@ export function calendarMarkup(tasks: AssignmentRow[], ctx: Context, month: Date
     const date = new Date(year,m,i-start+1), events=dates.filter(x=>x.key===key(date));
     cells += `<div class="day ${date.getMonth()!==m?"outside":""} ${key(date)===todayKey?"today":""}"><span class="day-number">${date.getDate()}</span>${events.map(event=>{
       const progress=progressFor(ctx.data.progress,ctx.user.uid,event.task.assignment_id);
-      return `<a class="calendar-event ${(progress?.status??"TODO").toLowerCase()} ${taskUrgency(event.task,progress,event.label==="Sec 1"?"1":event.label==="Sec 2"?"2":"ALL")}" href="${href("assignmentDetail",event.task.assignment_id)}">${e(event.task.title)}<br>${e(event.label)} · ${progress?.status??"TODO"}</a>`;
+      const eventSection=event.label.startsWith("Sec ")?event.label.slice(4) as Section:"ALL";
+      return `<a class="calendar-event ${(progress?.status??"TODO").toLowerCase()} ${taskUrgency(event.task,progress,eventSection)}" href="${href("assignmentDetail",event.task.assignment_id)}">${e(event.task.title)}<br>${e(event.label)} · ${progress?.status??"TODO"}</a>`;
     }).join("")}</div>`;
   }
   const monthly=dates.filter(x=>x.key.startsWith(year+"-"+String(m+1).padStart(2,"0"))).sort((a,b)=>a.time.localeCompare(b.time));
@@ -55,6 +56,7 @@ export function renderTasks(ctx: Context, calendarOnly = false) {
   ctx.root.innerHTML = heading(calendarOnly?"ปฏิทินงาน":"งานและการบ้าน",calendarOnly?"วางแผนกำหนดส่งของแต่ละวิชาในที่เดียว":"ติดตามงาน กำหนดส่ง และความคืบหน้าของคุณ",calendarOnly?"YOUR SCHEDULE":"ASSIGNMENT TRACKER",ctx.user.role==="admin" ? '<a class="button primary" href="'+href("assignmentForm")+'">'+icon("plus")+' เพิ่มงาน</a>' : '<span class="date-label">'+icon("calendar")+e(formatDate(new Date(),false))+'</span>')+
   '<div id="urgent-summary"></div><div class="filter-panel">'+sectionControl()+`<label>สถานะ<select id="status-filter"><option value="ALL">ทุกสถานะ</option><option value="TODO">ยังไม่เริ่ม</option><option value="DOING">กำลังทำ</option><option value="DONE">ทำเสร็จแล้ว</option></select></label><label>รายวิชา<select id="subject-filter"><option value="ALL">ทุกวิชา</option>${[...new Set(ctx.data.assignments.map(a=>a.subject_name))].map(s=>'<option>'+e(s)+'</option>').join("")}</select></label><label>เรียงตาม<select id="sort-filter"><option value="near">กำหนดส่งใกล้ที่สุด</option><option value="far">กำหนดส่งไกลที่สุด</option><option value="updated">อัปเดตล่าสุด</option></select></label></div>
   <div class="results-toolbar"><div><h2>รายการงาน</h2><small id="result-count"></small></div>${calendarOnly?"":'<div class="segmented view-toggle" role="group" aria-label="รูปแบบการแสดงผล"><button type="button" data-view="list">'+icon("list")+' รายการ</button><button type="button" data-view="calendar">'+icon("calendar")+' ปฏิทิน</button></div>'}</div><div id="task-results"></div>`;
+  if(ctx.enrollments)ctx.root.querySelector(".section-filter")?.remove();
   const results = ctx.root.querySelector<HTMLElement>("#task-results")!;
   const render = () => {
     const matches=ctx.data.assignments.filter(a=>matchesSection(a,section));

@@ -3,6 +3,7 @@ import type { AssignmentInput, AssignmentRow, PostInput, PostQuery, PostRow, Pro
 import { validateAssignment, validatePost } from "./repository";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
+import { canViewPostForEnrollments } from "./enrollment";
 const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
 const TASK_FIELDS = "assignment_id,created_by,subject_name,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
 export class SupabaseRepository implements Repository {
@@ -95,6 +96,12 @@ export class SupabaseRepository implements Repository {
     if (options.own) query = query.eq("author_id", user.uid);
     if (options.processed) query = query.or("approved_by.not.is.null,status.eq.rejected");
     if (options.section && options.section !== "ALL") query = query.or("target_scope.eq.ALL,target_sections.cs.{" + options.section + "}");
+    if (options.enrollments) {
+      const { data, error } = await query.order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }).order("post_id").limit(1000);
+      if (error) throw error;
+      const visible=(data as PostRow[]).filter(post=>canViewPostForEnrollments(post,options.enrollments!,user.uid));
+      return {rows:visible.slice((page-1)*size,page*size),total:visible.length};
+    }
     const { data, count, error } = await query.order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }).order("post_id").range((page-1)*size, page*size-1);
     if (error) throw error;
     return { rows: data as PostRow[], total: count ?? 0 };
@@ -129,7 +136,8 @@ export class SupabaseRepository implements Repository {
   }
   async saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow> {
     validateAssignment(input); const user = await this.user(true);
-    const query = id ? this.client.from("assignments").update({ ...input, updated_at: new Date().toISOString() }).eq("assignment_id", id) : this.client.from("assignments").insert({ ...input, created_by: user.uid });
+    const {subject_id:_subjectId,academic_year:_academicYear,semester:_semester,...databaseInput}=input;
+    const query = id ? this.client.from("assignments").update({ ...databaseInput, updated_at: new Date().toISOString() }).eq("assignment_id", id) : this.client.from("assignments").insert({ ...databaseInput, created_by: user.uid });
     const { data, error } = await query.select(TASK_FIELDS).single(); if (error) throw error; return data as AssignmentRow;
   }
   async deleteAssignment(id: string) {

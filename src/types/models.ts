@@ -1,5 +1,6 @@
 export type Role = "student" | "admin";
-export type Section = "ALL" | "1" | "2";
+export type Section = "ALL" | `${number}`;
+export type AcademicSemester = "1" | "2" | "summer";
 export type TaskStatus = "TODO" | "DOING" | "DONE";
 export type PostCategory = "official" | "general";
 export type PostStatus = "published" | "pending" | "rejected";
@@ -16,18 +17,23 @@ export interface PostRow {
   approved_by?: string | null; created_at: string; updated_at: string;
 }
 export interface AssignmentRow {
-  assignment_id: string; created_by: string; subject_name: string; title: string;
+  assignment_id: string; created_by: string; subject_id?: string | null; subject_name: string;
+  academic_year?: number | null; semester?: AcademicSemester | null; title: string;
   description: string; submission_channel: string; schedule_mode: "UNIFIED" | "SPLIT";
-  due_dates: { all?: string; sec_1?: string; sec_2?: string };
+  due_dates: { all?: string; [section: `sec_${number}`]: string | undefined };
   resources: string[]; created_at: string; updated_at: string;
+}
+export interface EnrollmentRow {
+  enrollment_id: string; uid: string; subject_id: string; academic_year: number;
+  semester: AcademicSemester; section: number; created_at: string; updated_at: string;
 }
 export interface ProgressRow {
   id: string; uid: string; assignment_id: string; status: TaskStatus; note?: string; updated_at: string;
 }
 export type PostInput = Pick<PostRow, "title" | "content" | "category" | "image_url" | "subject_id" | "subject_name" | "target_scope" | "target_sections" | "attachments" | "is_pinned">;
-export type AssignmentInput = Pick<AssignmentRow, "subject_name" | "title" | "description" | "submission_channel" | "schedule_mode" | "due_dates" | "resources">;
+export type AssignmentInput = Pick<AssignmentRow, "subject_id" | "subject_name" | "academic_year" | "semester" | "title" | "description" | "submission_channel" | "schedule_mode" | "due_dates" | "resources">;
 export interface Snapshot { users: UserRow[]; posts: PostRow[]; assignments: AssignmentRow[]; progress: ProgressRow[]; post_counts?: { pending: number; published: number } }
-export interface PostQuery { category?: PostCategory; section?: Section; own?: boolean; status?: PostStatus; processed?: boolean; page?: number; pageSize?: number }
+export interface PostQuery { category?: PostCategory; section?: Section; own?: boolean; status?: PostStatus; processed?: boolean; enrollments?: EnrollmentRow[]; page?: number; pageSize?: number }
 export interface PostPage { rows: PostRow[]; total: number }
 export interface Repository {
   mode: "demo" | "supabase";

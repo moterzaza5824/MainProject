@@ -1,6 +1,7 @@
 import type { AssignmentInput, PostInput, PostQuery, Repository, Snapshot, Role, TaskStatus, UserRow } from "../types/models";
 import { createSeed } from "./seed";
 import { safeUrl } from "../utils/html";
+import { canViewPostForEnrollments } from "./enrollment";
 
 const STORE = "se68-demo-data-v1", SESSION = "se68-demo-user-v1";
 export function validatePost(input: PostInput): void {
@@ -21,9 +22,9 @@ export function validateAssignment(input: AssignmentInput): void {
   if (![input.title, input.subject_name, input.description, input.submission_channel].every(x => x.trim())) throw new Error("กรุณาระบุข้อมูลงานให้ครบ");
   if (!["UNIFIED","SPLIT"].includes(input.schedule_mode)) throw new Error("รูปแบบกำหนดส่งไม่ถูกต้อง");
   const keys = Object.keys(input.due_dates);
-  if (keys.some(key => input.schedule_mode === "UNIFIED" ? key !== "all" : !["sec_1","sec_2"].includes(key))) throw new Error("กำหนดส่งไม่ตรงกับรูปแบบที่เลือก");
+  if (keys.some(key => input.schedule_mode === "UNIFIED" ? key !== "all" : !/^sec_[1-9][0-9]*$/.test(key))) throw new Error("กำหนดส่งไม่ตรงกับรูปแบบที่เลือก");
   if (input.title.length > 160 || input.subject_name.length > 120 || input.submission_channel.length > 120 || input.description.length > 10000) throw new Error("ข้อมูลยาวเกินกำหนด");
-  const dates = input.schedule_mode === "UNIFIED" ? [input.due_dates.all] : [input.due_dates.sec_1, input.due_dates.sec_2].filter(Boolean);
+  const dates = input.schedule_mode === "UNIFIED" ? [input.due_dates.all] : Object.entries(input.due_dates).filter(([key])=>key.startsWith("sec_")).map(([,date])=>date).filter(Boolean);
   if (!dates.length || dates.some(d => !d || !Number.isFinite(Date.parse(d)))) throw new Error("กรุณากำหนดวันส่งอย่างน้อยหนึ่งกลุ่มให้ถูกต้อง");
   if (input.resources.some(url => !safeUrl(url))) throw new Error("ลิงก์โจทย์ต้องเป็น http หรือ https");
 }
@@ -81,6 +82,7 @@ export class DemoRepository implements Repository {
       (!query.status || p.status === query.status) &&
       (!query.own || p.author_id === user.uid) &&
       (!query.processed || !!p.approved_by || p.status === "rejected") &&
+      (!query.enrollments || canViewPostForEnrollments(p,query.enrollments,user.uid)) &&
       (!query.section || query.section === "ALL" || p.target_scope === "ALL" || p.target_sections.includes(Number(query.section)))
     ).sort((a,b) => Number(b.is_pinned) - Number(a.is_pinned) || b.updated_at.localeCompare(a.updated_at) || a.post_id.localeCompare(b.post_id));
     const size = Math.min(15, Math.max(1, query.pageSize ?? 10)), page = Math.max(1, query.page ?? 1);
