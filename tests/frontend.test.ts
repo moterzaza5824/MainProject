@@ -376,6 +376,10 @@ test("student enrollment stores one section per course and filters assignments a
   assert.match(ctx.root.textContent!,/ลงทะเบียนแล้ว 1 วิชา/);assert.match(ctx.root.textContent!,/Sec 1/);
   const other=catalog.subjects.find(row=>row.id!==oop.id)!;
   const otherSection=ctx.root.querySelector<HTMLSelectElement>(`[data-enrollment-section="${other.id}"]`)!;
+  assert.equal(otherSection.value,"");
+  ctx.root.querySelector<HTMLButtonElement>("[data-save-all-enrollments]")!.click();
+  assert.equal(loadEnrollments(ctx.user.uid).length,1);
+  ctx.root.querySelectorAll<HTMLSelectElement>('[data-enrollment-section]').forEach(select=>{if(!select.value)select.value="1";});
   otherSection.value="2";otherSection.dispatchEvent(new Event("change",{bubbles:true}));
   assert.equal(otherSection.value,"2");
   ctx.root.querySelector<HTMLButtonElement>("[data-save-all-enrollments]")!.click();
