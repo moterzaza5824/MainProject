@@ -372,6 +372,8 @@ test("student dashboard summarizes unsubmitted work and prioritizes score-saving
   ctx.data.posts=ctx.data.posts.map(post=>post.post_id===general.post_id?{...post,status:"published",is_pinned:true}:post);
   renderDashboard(ctx);
   const stats=ctx.root.querySelector(".stats-grid")?.textContent ?? "";
+  const calendarLink=ctx.root.querySelector<HTMLAnchorElement>('.heading-actions a[href="/pages/calendar/"]');
+  assert.ok(calendarLink);assert.match(calendarLink.textContent!,/ดูปฏิทิน/);
   assert.equal(ctx.root.querySelectorAll(".stats-grid .stat").length,3);
   assert.match(stats,/งานทั้งหมดที่ยังไม่ได้ส่ง/);
   assert.match(stats,/ต้องส่งภายใน 48 ชม\./);
