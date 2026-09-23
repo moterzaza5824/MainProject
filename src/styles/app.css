@@ -76,6 +76,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 .panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
 .panel-title h2{margin:0}
 .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stats-grid.student-stats{grid-template-columns:repeat(3,1fr)}
 .stat{background:#fff;border:1px solid var(--border);border-radius:13px;padding:21px 22px;position:relative}
 .stat-label{font-size:13px;color:var(--muted)}
 .stat strong{display:block;font-size:35px;line-height:1.4;font-weight:700;letter-spacing:-1px}
@@ -99,8 +100,9 @@ label>input,label>select,label>textarea{margin-top:7px}
 .badge.done,.badge.published{color:#137145;background:#e7f6ed}
 .badge.urgent,.badge.overdue,.badge.rejected{color:#b0393b;background:#fff0ef}
 .badge.pending{color:#95610b;background:#fff4da}
-.badge.official{color:#176c46;background:#e5f3eb}
-.badge.general{color:#3b6669;background:#e8f3f2}
+.badge.official{color:#176c46;background:#e5f3eb;border-color:#b9dfc9}
+.badge.general{color:#526058;background:#eef1ef;border-color:#d9e0dc}
+.announcement-badges{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .announcement-preview{display:block;color:var(--ink);padding:18px 0;border-bottom:1px solid #edf1ee}
 .announcement-preview:first-child{padding-top:0}
 .announcement-preview:last-child{border:0}
@@ -213,7 +215,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 .post-card-kind,.post-card-flags{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .post-card-kind{margin-top:14px}
 .post-card-flags{justify-content:flex-end;margin-left:auto}
-.badge.pin{color:#b4232e;background:#ffebe9;border-color:#f4aaa5}
+.badge.pin{color:#a63d12;background:#fff0e6;border-color:#f0ad83;box-shadow:inset 3px 0 #e85b24}
 .badge.subject{color:#96580a;background:#fff2da;border-color:#f2d39c}
 .badge.audience{color:#aa3436;background:#fff0ef;border-color:#f0bfba}
 .post-image-button{position:relative;display:block;width:100%;padding:0;border:0;border-radius:10px;background:#101713;overflow:hidden;cursor:zoom-in;text-align:center;margin:0 0 20px}
@@ -355,6 +357,8 @@ label>input,label>select,label>textarea{margin-top:7px}
 .heading-actions{flex-wrap:wrap}
 .profile-label{display:none}
 .stats-grid{grid-template-columns:1fr 1fr}
+.stats-grid.student-stats{grid-template-columns:1fr 1fr}
+.stats-grid.student-stats .stat:last-child{grid-column:1/-1}
 .stat strong{font-size:30px}
 .auth-page{grid-template-columns:1fr}
 .auth-story{padding:25px}

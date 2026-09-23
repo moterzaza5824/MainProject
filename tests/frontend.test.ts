@@ -358,14 +358,28 @@ test("all page renderers provide content for both roles and missing records", as
   }
 });
 
-test("student dashboard prioritizes 24-hour and overdue work instead of progress totals", async () => {
+test("student dashboard summarizes unsubmitted work and prioritizes score-saving deadlines", async () => {
   const ctx=await context("student");
+  const now=Date.now(),source=ctx.data.assignments.slice(0,3);
+  ctx.data.assignments=[
+    {...source[0],assignment_id:"overdue-test",title:"งานเลยกำหนด",schedule_mode:"UNIFIED",due_dates:{all:new Date(now-2*3600000).toISOString()}},
+    {...source[1],assignment_id:"later-test",title:"งานส่งทีหลัง",schedule_mode:"UNIFIED",due_dates:{all:new Date(now+20*3600000).toISOString()}},
+    {...source[2],assignment_id:"nearest-test",title:"งานใกล้กำหนดที่สุด",schedule_mode:"UNIFIED",due_dates:{all:new Date(now+2*3600000).toISOString()}}
+  ];
+  ctx.data.progress=[];
+  const general=ctx.data.posts.find(post=>post.category==="general")!;
+  ctx.data.posts=ctx.data.posts.map(post=>post.post_id===general.post_id?{...post,status:"published",is_pinned:true}:post);
   renderDashboard(ctx);
   const stats=ctx.root.querySelector(".stats-grid")?.textContent ?? "";
-  assert.match(stats,/เหลือเวลาไม่เกิน 24 ชม\./);
-  assert.match(stats,/ภายใน 24–48 ชั่วโมง/);
+  assert.equal(ctx.root.querySelectorAll(".stats-grid .stat").length,3);
+  assert.match(stats,/งานทั้งหมดที่ยังไม่ได้ส่ง/);
+  assert.match(stats,/ต้องส่งภายใน 24 ชม\./);
   assert.match(stats,/เลยกำหนดส่ง/);
-  assert.doesNotMatch(stats,/กำลังทำ|ทำเสร็จแล้ว/);
+  assert.doesNotMatch(stats,/24–48|กำลังทำ|ทำเสร็จแล้ว/);
+  const taskTitles=[...ctx.root.querySelectorAll<HTMLAnchorElement>(".dashboard-grid>section:first-child .mini-task-main>a")].map(link=>link.textContent);
+  assert.deepEqual(taskTitles,["งานใกล้กำหนดที่สุด","งานส่งทีหลัง","งานเลยกำหนด"]);
+  assert.ok(ctx.root.querySelector(".announcement-preview .badge.pin"));
+  assert.ok(ctx.root.querySelector(".announcement-preview .badge.general"));
 });
 
 test("sidebar collapse preference persists and active menu is correct", async () => {
