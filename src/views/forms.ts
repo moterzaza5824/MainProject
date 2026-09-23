@@ -79,7 +79,9 @@ export function renderAssignmentForm(ctx:Context){
   const id=new URLSearchParams(location.search).get("id")??undefined,task=ctx.data.assignments.find(a=>a.assignment_id===id);
   if(id&&!task){ctx.root.innerHTML=empty("ไม่พบงานนี้","กลับไปหน้าจัดการงานเพื่อเลือกรายการอีกครั้ง");return;}
   const catalog=loadCatalog(ctx.data.assignments);
-  const selectedSubject=catalog.subjects.find(row=>row.id===task?.subject_id)?.id??catalog.subjects.find(row=>row.name===task?.subject_name&&(!task?.academic_year||row.academicYear===task.academic_year)&&(!task?.semester||row.semester===task.semester))?.id??(task?"legacy-subject":"");
+  const matchedSubject=catalog.subjects.find(row=>row.id===task?.subject_id)??catalog.subjects.find(row=>row.name===task?.subject_name&&(!task?.academic_year||row.academicYear===task.academic_year)&&(!task?.semester||row.semester===task.semester));
+  const selectedSubject=matchedSubject?.id??(task?"legacy-subject":"");
+  const initialUnifiedDue=matchedSubject?.sectionCount===1?(task?.due_dates.all??task?.due_dates.sec_1):task?.due_dates.all;
   const selectedChannel=catalog.channels.find(row=>row.name===task?.submission_channel)?.id??(task?"legacy-channel":"");
   const subjectOptions=(task&&selectedSubject==="legacy-subject"?'<option value="legacy-subject" selected>'+e(task.subject_name)+' · ข้อมูลเดิม</option>':"")+catalog.subjects.map(row=>`<option value="${e(row.id)}" ${row.id===selectedSubject?"selected":""}>${e(row.name)} · ปี ${row.academicYear} · ${e(semesterLabel(row.semester))} · ${row.sectionCount} Sec</option>`).join("");
   const channelOptions=(task&&selectedChannel==="legacy-channel"?'<option value="legacy-channel" selected>'+e(task.submission_channel)+' · ข้อมูลเดิม</option>':"")+catalog.channels.map(row=>`<option value="${e(row.id)}" ${row.id===selectedChannel?"selected":""}>${e(row.name)}</option>`).join("");
@@ -88,7 +90,7 @@ export function renderAssignmentForm(ctx:Context){
   `<form class="panel form-panel" id="assignment-form"><div class="form-error" data-error role="alert" tabindex="-1" hidden></div>
   ${missing?'<div class="info-box">ต้องเพิ่มรายวิชาและช่องทางส่งงานให้ครบก่อนสร้างงานใหม่ <a href="'+href("adminCatalog")+'">ไปที่ข้อมูลพื้นฐาน</a></div>':""}
   <section class="form-section"><h2>รายละเอียดงาน</h2><div class="form-row"><label class="field">รายวิชา *<select name="subject_id" required><option value="">เลือกรายวิชา</option>${subjectOptions}</select><small id="subject-summary">เลือกรายวิชาที่เพิ่มไว้ในหน้าข้อมูลพื้นฐาน</small></label><label class="field">ช่องทางส่งงาน *<select name="channel_id" required><option value="">เลือกช่องทางส่งงาน</option>${channelOptions}</select><small>หากยังไม่มีตัวเลือก ให้เพิ่มในหน้าข้อมูลพื้นฐานก่อน</small></label></div><label class="field">ชื่องาน *<input name="title" required maxlength="160" value="${e(task?.title??"")}" placeholder="Lab 4: Inheritance"></label><label class="field">คำอธิบาย *<textarea name="description" required maxlength="10000" rows="7">${e(task?.description??"")}</textarea></label></section>
-  <section class="form-section"><h2>กำหนดส่ง</h2><label class="field">รูปแบบกำหนดส่ง<select name="mode"><option value="UNIFIED" ${task?.schedule_mode!=="SPLIT"?"selected":""}>รวมทุก Sec ของวิชา (UNIFIED)</option><option value="SPLIT" ${task?.schedule_mode==="SPLIT"?"selected":""}>แยกกลุ่มเรียน (SPLIT)</option></select></label><div id="unified-fields"><label class="field">กำหนดส่งทุก Sec *<input name="all" type="datetime-local" value="${e(thaiInput(task?.due_dates.all))}"></label></div><div id="split-fields" class="form-row"></div><p class="note-hint">ทุกเวลาที่กรอกเป็นเวลาไทย (UTC+7) · ช่อง Sec จะสร้างตามรายวิชาที่เลือก และต้องมีวันส่งอย่างน้อยหนึ่งกลุ่ม</p></section>
+  <section class="form-section"><h2>กำหนดส่ง</h2><label class="field">รูปแบบกำหนดส่ง<select name="mode"><option value="UNIFIED" ${task?.schedule_mode!=="SPLIT"?"selected":""}>รวมทุก Sec ของวิชา (UNIFIED)</option><option value="SPLIT" ${task?.schedule_mode==="SPLIT"?"selected":""}>แยกกลุ่มเรียน (SPLIT)</option></select></label><div id="unified-fields"><label class="field">กำหนดส่งทั้งวิชา *<input name="all" type="datetime-local" value="${e(thaiInput(initialUnifiedDue))}"></label></div><div id="split-fields" class="form-row"></div><p class="note-hint" id="schedule-note">ทุกเวลาที่กรอกเป็นเวลาไทย (UTC+7) · ช่อง Sec จะสร้างตามรายวิชาที่เลือก และต้องมีวันส่งอย่างน้อยหนึ่งกลุ่ม</p></section>
   <section class="form-section"><h2>ลิงก์โจทย์และทรัพยากร</h2><label class="field">URL เอกสาร<textarea name="resources" rows="3" placeholder="https://…\nหนึ่งลิงก์ต่อหนึ่งบรรทัด">${e(task?.resources.join("\n")??"")}</textarea><small>ใช้ลิงก์ภายนอกแทนการอัปโหลดไฟล์</small></label></section><div class="form-footer"><a class="button" href="${href("adminAssignments")}">ยกเลิก</a><button class="button primary" type="submit">${icon("check")} ${id?"บันทึกการแก้ไข":"เพิ่มงาน"}</button></div></form>`;
   const form=ctx.root.querySelector<HTMLFormElement>("#assignment-form")!,clearDirty=guardDirty(form);
   const subjectSelect=form.elements.namedItem("subject_id") as HTMLSelectElement;
@@ -102,17 +104,22 @@ export function renderAssignmentForm(ctx:Context){
   };
   const updateSubject=()=>{const row=selectedCatalog();form.querySelector("#subject-summary")!.textContent=row?`ปี ${row.academicYear} · ${semesterLabel(row.semester)} · ${row.sectionCount} Sec`:"เลือกรายวิชาที่เพิ่มไว้ในหน้าข้อมูลพื้นฐาน";renderSplitFields();toggle();};
   const toggle=()=>{
-    const unified=(form.elements.namedItem("mode") as HTMLSelectElement).value==="UNIFIED";
+    const modeSelect=form.elements.namedItem("mode") as HTMLSelectElement,singleSection=selectedCatalog()?.sectionCount===1;
+    if(singleSection)modeSelect.value="UNIFIED";
+    modeSelect.disabled=singleSection;
+    const unified=modeSelect.value==="UNIFIED";
     form.querySelector<HTMLElement>("#unified-fields")!.hidden=!unified;form.querySelector<HTMLElement>("#split-fields")!.hidden=unified;
     (form.elements.namedItem("all") as HTMLInputElement).disabled=!unified;(form.elements.namedItem("all") as HTMLInputElement).required=unified;
     splitFields.querySelectorAll<HTMLInputElement>('input[name^="sec_"]').forEach(input=>input.disabled=unified);
+    form.querySelector("#schedule-note")!.textContent=singleSection?"รายวิชานี้มี 1 Sec ระบบจะเผยแพร่งานให้ทั้งวิชาโดยอัตโนมัติ โดยไม่แบ่งกลุ่มเรียน":"ทุกเวลาที่กรอกเป็นเวลาไทย (UTC+7) · เลือกกำหนดส่งรวมทุก Sec หรือแยกตามกลุ่มเรียน";
   };
   subjectSelect.onchange=updateSubject;(form.elements.namedItem("mode") as HTMLSelectElement).onchange=toggle;renderSplitFields();updateSubject();
   form.onsubmit=async event=>{
     event.preventDefault();const button=form.querySelector<HTMLButtonElement>("[type=submit]")!;if(button.disabled)return;button.disabled=true;
     try{
-      const fd=new FormData(form),mode=fd.get("mode") as AssignmentInput["schedule_mode"],dates:AssignmentInput["due_dates"]={};
+      const fd=new FormData(form),dates:AssignmentInput["due_dates"]={};
       const subject=catalog.subjects.find(row=>row.id===String(fd.get("subject_id"))),channel=catalog.channels.find(row=>row.id===String(fd.get("channel_id")));
+      const mode:AssignmentInput["schedule_mode"]=subject?.sectionCount===1?"UNIFIED":fd.get("mode") as AssignmentInput["schedule_mode"];
       const subjectName=subject?.name??(fd.get("subject_id")==="legacy-subject"?task?.subject_name:""),channelName=channel?.name??(fd.get("channel_id")==="legacy-channel"?task?.submission_channel:"");
       if(!subjectName||!channelName)throw new Error("กรุณาเลือกรายวิชาและช่องทางส่งงานจากข้อมูลพื้นฐาน");
       const keys=mode==="UNIFIED"?["all"]:[...splitFields.querySelectorAll<HTMLInputElement>('input[name^="sec_"]')].map(input=>input.name);

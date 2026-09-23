@@ -376,6 +376,29 @@ test("assignment editor toggles and disables hidden schedule inputs", async () =
   assert.equal((form.elements.namedItem("all") as HTMLInputElement).disabled,true);
 });
 
+test("assignment editor publishes one-section subjects to the whole course without section splitting", async () => {
+  const ctx=await context("admin");
+  addSubject(ctx.data.assignments,{name:"วิชางานกลุ่มเดียว",academicYear:2569,semester:"1",sectionCount:1});
+  const oneSection=loadCatalog(ctx.data.assignments).subjects.find(row=>row.name==="วิชางานกลุ่มเดียว")!;
+  renderAssignmentForm(ctx);
+  const form=ctx.root.querySelector<HTMLFormElement>("#assignment-form")!;
+  const subject=form.elements.namedItem("subject_id") as HTMLSelectElement;
+  const mode=form.elements.namedItem("mode") as HTMLSelectElement;
+  subject.value=oneSection.id;subject.dispatchEvent(new Event("change",{bubbles:true}));
+  assert.equal(mode.value,"UNIFIED");assert.equal(mode.disabled,true);
+  assert.equal(ctx.root.querySelector<HTMLElement>("#unified-fields")!.hidden,false);
+  assert.equal(ctx.root.querySelector<HTMLElement>("#split-fields")!.hidden,true);
+  assert.match(ctx.root.querySelector("#schedule-note")!.textContent!,/เผยแพร่งานให้ทั้งวิชา/);
+  (form.elements.namedItem("channel_id") as HTMLSelectElement).value=(form.elements.namedItem("channel_id") as HTMLSelectElement).options[1].value;
+  (form.elements.namedItem("title") as HTMLInputElement).value="งานสำหรับทั้งวิชา";
+  (form.elements.namedItem("description") as HTMLTextAreaElement).value="รายละเอียดงาน";
+  (form.elements.namedItem("all") as HTMLInputElement).value="2026-10-01T10:00";
+  form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
+  const saved=(await repo.snapshot()).assignments.find(row=>row.title==="งานสำหรับทั้งวิชา")!;
+  assert.equal(saved.subject_id,oneSection.id);assert.equal(saved.schedule_mode,"UNIFIED");
+  assert.ok(saved.due_dates.all);assert.equal(saved.due_dates.sec_1,undefined);
+});
+
 test("master data page adds subject and channel choices used by the assignment form", async () => {
   const ctx=await context("admin");renderCatalog(ctx);
   const kind=ctx.root.querySelector<HTMLSelectElement>("#catalog-kind")!;
