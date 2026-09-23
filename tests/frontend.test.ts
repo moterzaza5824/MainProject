@@ -374,6 +374,9 @@ test("student enrollment stores one section per course and filters assignments a
   assert.equal(filtered.posts.some(post=>post.post_id==="official-exam"),false);
   ctx.enrollments=enrollments;renderEnrollment(ctx);
   assert.match(ctx.root.textContent!,/ลงทะเบียนแล้ว 1 วิชา/);assert.match(ctx.root.textContent!,/Sec 1/);
+  const registrationLink=ctx.root.querySelector<HTMLAnchorElement>('a[href="https://reg.up.ac.th/"]')!;
+  assert.ok(registrationLink);assert.equal(registrationLink.target,"_blank");
+  assert.doesNotMatch(ctx.root.textContent!,/ภาคฤดูร้อน/);
   const other=catalog.subjects.find(row=>row.id!==oop.id)!;
   const otherSection=ctx.root.querySelector<HTMLSelectElement>(`[data-enrollment-section="${other.id}"]`)!;
   assert.equal(otherSection.value,"");

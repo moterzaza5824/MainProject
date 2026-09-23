@@ -7,14 +7,14 @@ const read = ():EnrollmentRow[] => {
   try {
     const parsed=JSON.parse(localStorage.getItem(STORE)??"[]") as unknown;
     if(!Array.isArray(parsed))return [];
-    return parsed.filter((row):row is EnrollmentRow=>!!row&&typeof row==="object"&&typeof row.enrollment_id==="string"&&typeof row.uid==="string"&&typeof row.subject_id==="string"&&Number.isInteger(row.academic_year)&&["1","2","summer"].includes(row.semester)&&Number.isInteger(row.section)&&row.section>0);
+    return parsed.filter((row):row is EnrollmentRow=>!!row&&typeof row==="object"&&typeof row.enrollment_id==="string"&&typeof row.uid==="string"&&typeof row.subject_id==="string"&&Number.isInteger(row.academic_year)&&["1","2"].includes(row.semester)&&Number.isInteger(row.section)&&row.section>0);
   } catch { return []; }
 };
 const write=(rows:EnrollmentRow[])=>{
   try { localStorage.setItem(STORE,JSON.stringify(rows)); }
   catch { throw new Error("ไม่สามารถบันทึกการลงทะเบียนในเบราว์เซอร์นี้ได้"); }
 };
-export const semesterLabel=(semester:SubjectCatalogRow["semester"])=>semester==="summer"?"ภาคฤดูร้อน":`ภาคเรียนที่ ${semester}`;
+export const semesterLabel=(semester:SubjectCatalogRow["semester"])=>`ภาคเรียนที่ ${semester}`;
 export const loadEnrollments=(uid:string)=>read().filter(row=>row.uid===uid);
 export function saveEnrollments(uid:string,selections:{subject:SubjectCatalogRow;section:number}[]):EnrollmentRow[] {
   if(!selections.length)throw new Error("ไม่มีรายวิชาให้บันทึก");

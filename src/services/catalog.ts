@@ -39,7 +39,7 @@ function valid(value:unknown):value is MasterCatalog {
   if(!value||typeof value!=="object")return false;
   const data=value as MasterCatalog;
   return Array.isArray(data.subjects)&&Array.isArray(data.channels)&&
-    data.subjects.every(row=>typeof row.id==="string"&&typeof row.name==="string"&&Number.isInteger(row.academicYear)&&["1","2","summer"].includes(row.semester)&&Number.isInteger(row.sectionCount))&&
+    data.subjects.every(row=>typeof row.id==="string"&&typeof row.name==="string"&&Number.isInteger(row.academicYear)&&["1","2"].includes(row.semester)&&Number.isInteger(row.sectionCount))&&
     data.channels.every(row=>typeof row.id==="string"&&typeof row.name==="string");
 }
 function write(catalog:MasterCatalog):void {
@@ -52,7 +52,8 @@ export function loadCatalog(assignments:AssignmentRow[]=[]):MasterCatalog {
     if(stored){
       const parsed=JSON.parse(stored) as Partial<MasterCatalog>;
       if(Array.isArray(parsed.subjects)&&Array.isArray(parsed.channels)){
-        const migrated={...parsed,subjects:parsed.subjects.map(row=>({...row,semester:row.semester??"1"}))};
+        const legacySubjects=parsed.subjects as Array<Omit<SubjectCatalogRow,"semester">&{semester?:string}>;
+        const migrated={...parsed,subjects:legacySubjects.filter(row=>row.semester!=="summer").map(row=>({...row,semester:row.semester==="2"?"2" as const:"1" as const}))};
         if(valid(migrated)){if(JSON.stringify(migrated)!==stored)write(migrated);return migrated;}
       }
     }
@@ -63,7 +64,7 @@ export function addSubject(assignments:AssignmentRow[],input:{name:string;academ
   const catalog=loadCatalog(assignments),name=normalize(input.name);
   if(!name||name.length>120)throw new Error("กรุณาระบุชื่อวิชาไม่เกิน 120 ตัวอักษร");
   if(!Number.isInteger(input.academicYear)||input.academicYear<2500||input.academicYear>2700)throw new Error("ปีการศึกษาต้องอยู่ระหว่าง 2500–2700");
-  if(!["1","2","summer"].includes(input.semester))throw new Error("กรุณาเลือกภาคเรียนให้ถูกต้อง");
+  if(!["1","2"].includes(input.semester))throw new Error("กรุณาเลือกภาคเรียนให้ถูกต้อง");
   if(!Number.isInteger(input.sectionCount)||input.sectionCount<1||input.sectionCount>20)throw new Error("จำนวน Sec ต้องอยู่ระหว่าง 1–20");
   if(catalog.subjects.some(row=>row.academicYear===input.academicYear&&row.semester===input.semester&&row.name.localeCompare(name,undefined,{sensitivity:"accent"})===0))throw new Error("มีรายวิชานี้ในปีและภาคเรียนที่เลือกแล้ว");
   catalog.subjects.unshift({id:id("subject"),name,academicYear:input.academicYear,semester:input.semester,sectionCount:input.sectionCount});

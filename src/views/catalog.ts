@@ -15,7 +15,7 @@ export function renderCatalog(ctx:Context){
     <label class="field catalog-kind">ต้องการเพิ่มอะไร<select id="catalog-kind"><option value="subject">รายวิชา</option><option value="channel">ช่องทางส่งงาน</option></select></label>
     <form id="subject-catalog-form"><div class="form-error" data-error role="alert" tabindex="-1" hidden></div>
       <label class="field">ชื่อวิชา *<input name="name" required maxlength="120" placeholder="เช่น Object-Oriented Programming"></label>
-      <div class="form-row"><label class="field">ปีการศึกษา *<input name="academic_year" type="number" required min="2500" max="2700" value="${academicYear}"></label><label class="field">ภาคเรียน *<select name="semester" required><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option><option value="summer">ภาคฤดูร้อน</option></select></label></div>
+      <div class="form-row"><label class="field">ปีการศึกษา *<input name="academic_year" type="number" required min="2500" max="2700" value="${academicYear}"></label><label class="field">ภาคเรียน *<select name="semester" required><option value="1">ภาคเรียนที่ 1</option><option value="2">ภาคเรียนที่ 2</option></select></label></div>
       <label class="field">จำนวน Sec *<input name="section_count" type="number" required min="1" max="20" value="2"><small>ระบุจำนวนกลุ่มเรียนของวิชานี้</small></label>
       <div class="form-footer"><button class="button primary" type="submit">${icon("plus")} เพิ่มรายวิชา</button></div>
     </form>
@@ -42,7 +42,7 @@ export function renderCatalog(ctx:Context){
   subjectForm.onsubmit=event=>{
     event.preventDefault();const fd=new FormData(subjectForm);
     try{
-      catalog=addSubject(ctx.data.assignments,{name:String(fd.get("name")),academicYear:Number(fd.get("academic_year")),semester:String(fd.get("semester")) as "1"|"2"|"summer",sectionCount:Number(fd.get("section_count"))});
+      catalog=addSubject(ctx.data.assignments,{name:String(fd.get("name")),academicYear:Number(fd.get("academic_year")),semester:String(fd.get("semester")) as "1"|"2",sectionCount:Number(fd.get("section_count"))});
       subjectForm.reset();(subjectForm.elements.namedItem("academic_year") as HTMLInputElement).value=String(academicYear);(subjectForm.elements.namedItem("section_count") as HTMLInputElement).value="2";
       subjectForm.querySelector<HTMLElement>("[data-error]")!.hidden=true;renderLists();toast("เพิ่มรายวิชาแล้ว");
     }catch(error){showError(subjectForm,error);}
