@@ -3,9 +3,9 @@ import { e } from "../utils/html";
 import { href } from "../utils/routes";
 import { heading } from "../ui/shell";
 import { icon } from "../ui/icons";
-import { toast } from "../ui/primitives";
-import { addChannel, addSubject, loadCatalog } from "../services/catalog";
-import { semesterLabel } from "../services/enrollment";
+import { confirmAction, toast } from "../ui/primitives";
+import { addChannel, addSubject, deleteChannel, deleteSubject, loadCatalog } from "../services/catalog";
+import { hasEnrollmentsForSubject, semesterLabel } from "../services/enrollment";
 
 export function renderCatalog(ctx:Context){
   const academicYear=new Date().getFullYear()+543;
@@ -35,8 +35,8 @@ export function renderCatalog(ctx:Context){
   const renderLists=()=>{
     ctx.root.querySelector("#subject-total")!.textContent=catalog.subjects.length+" วิชา";
     ctx.root.querySelector("#channel-total")!.textContent=catalog.channels.length+" ช่องทาง";
-    ctx.root.querySelector("#subject-catalog-list")!.innerHTML=catalog.subjects.length?'<div class="catalog-items">'+catalog.subjects.map(row=>`<div class="catalog-item"><div><strong>${e(row.name)}</strong><span>ปีการศึกษา ${row.academicYear} · ${e(semesterLabel(row.semester))}</span></div><b>${row.sectionCount} Sec</b></div>`).join("")+"</div>":'<p class="note-hint">ยังไม่มีรายวิชา กรุณาเพิ่มรายวิชาก่อนสร้างงาน</p>';
-    ctx.root.querySelector("#channel-catalog-list")!.innerHTML=catalog.channels.length?'<div class="catalog-items">'+catalog.channels.map(row=>`<div class="catalog-item"><div><strong>${e(row.name)}</strong><span>พร้อมใช้ในแบบฟอร์มเพิ่มงาน</span></div></div>`).join("")+"</div>":'<p class="note-hint">ยังไม่มีช่องทางส่งงาน</p>';
+    ctx.root.querySelector("#subject-catalog-list")!.innerHTML=catalog.subjects.length?'<div class="catalog-items">'+catalog.subjects.map(row=>`<div class="catalog-item"><div><strong>${e(row.name)}</strong><span>ปีการศึกษา ${row.academicYear} · ${e(semesterLabel(row.semester))}</span></div><div class="catalog-item-actions"><b>${row.sectionCount} Sec</b><button class="icon-button danger" type="button" data-delete-subject="${e(row.id)}" aria-label="ลบรายวิชา ${e(row.name)}" title="ลบรายวิชา">${icon("trash")}</button></div></div>`).join("")+"</div>":'<p class="note-hint">ยังไม่มีรายวิชา กรุณาเพิ่มรายวิชาก่อนสร้างงาน</p>';
+    ctx.root.querySelector("#channel-catalog-list")!.innerHTML=catalog.channels.length?'<div class="catalog-items">'+catalog.channels.map(row=>`<div class="catalog-item"><div><strong>${e(row.name)}</strong><span>พร้อมใช้ในแบบฟอร์มเพิ่มงาน</span></div><button class="icon-button danger" type="button" data-delete-channel="${e(row.id)}" aria-label="ลบช่องทาง ${e(row.name)}" title="ลบช่องทาง">${icon("trash")}</button></div>`).join("")+"</div>":'<p class="note-hint">ยังไม่มีช่องทางส่งงาน</p>';
   };
   kind.onchange=()=>{const subject=kind.value==="subject";subjectForm.hidden=!subject;channelForm.hidden=subject;(subject?subjectForm:channelForm).querySelector<HTMLInputElement>("input")?.focus();};
   subjectForm.onsubmit=event=>{
@@ -53,5 +53,9 @@ export function renderCatalog(ctx:Context){
       catalog=addChannel(ctx.data.assignments,String(fd.get("name")));channelForm.reset();channelForm.querySelector<HTMLElement>("[data-error]")!.hidden=true;renderLists();toast("เพิ่มช่องทางส่งงานแล้ว");
     }catch(error){showError(channelForm,error);}
   };
+  ctx.root.addEventListener("click",event=>{const button=(event.target as Element).closest<HTMLButtonElement>("button");if(!button)return;
+    if(button.dataset.deleteSubject){const subject=catalog.subjects.find(row=>row.id===button.dataset.deleteSubject);if(!subject)return;void confirmAction("ลบรายวิชา",`ต้องการลบ ${subject.name} ปี ${subject.academicYear} ${semesterLabel(subject.semester)} ใช่ไหม`,"ลบรายวิชา").then(confirmed=>{if(!confirmed)return;try{catalog=deleteSubject(ctx.data.assignments,ctx.data.posts,subject.id,hasEnrollmentsForSubject(subject.id));renderLists();toast("ลบรายวิชาแล้ว");}catch(error){toast(error instanceof Error?error.message:"ลบรายวิชาไม่สำเร็จ",true);}});}
+    if(button.dataset.deleteChannel){const channel=catalog.channels.find(row=>row.id===button.dataset.deleteChannel);if(!channel)return;void confirmAction("ลบช่องทางส่งงาน",`ต้องการลบ ${channel.name} ใช่ไหม`,"ลบช่องทาง").then(confirmed=>{if(!confirmed)return;try{catalog=deleteChannel(ctx.data.assignments,channel.id);renderLists();toast("ลบช่องทางส่งงานแล้ว");}catch(error){toast(error instanceof Error?error.message:"ลบช่องทางไม่สำเร็จ",true);}});}
+  });
   renderLists();
 }

@@ -1,4 +1,4 @@
-import type { AcademicSemester, AssignmentRow } from "../types/models";
+import type { AcademicSemester, AssignmentRow, PostRow } from "../types/models";
 
 const STORE = "se68-master-data-v1";
 
@@ -76,4 +76,18 @@ export function addChannel(assignments:AssignmentRow[],nameInput:string):MasterC
   if(catalog.channels.some(row=>row.name.localeCompare(name,undefined,{sensitivity:"accent"})===0))throw new Error("มีช่องทางส่งงานนี้แล้ว");
   catalog.channels.unshift({id:id("channel"),name});
   write(catalog);return catalog;
+}
+export function deleteSubject(assignments:AssignmentRow[],posts:PostRow[],subjectId:string,hasEnrollment=false):MasterCatalog {
+  const catalog=loadCatalog(assignments),subject=catalog.subjects.find(row=>row.id===subjectId);
+  if(!subject)throw new Error("ไม่พบรายวิชาที่ต้องการลบ");
+  const usedByAssignment=assignments.some(row=>row.subject_id===subject.id||(!row.subject_id&&row.subject_name===subject.name&&(!row.academic_year||row.academic_year===subject.academicYear)&&(!row.semester||row.semester===subject.semester)));
+  const usedByPost=posts.some(row=>row.subject_id===subject.id||(!row.subject_id&&row.subject_name===subject.name));
+  if(usedByAssignment||usedByPost||hasEnrollment)throw new Error("ลบรายวิชานี้ไม่ได้ เพราะมีงาน ประกาศ หรือการลงทะเบียนใช้งานอยู่");
+  catalog.subjects=catalog.subjects.filter(row=>row.id!==subjectId);write(catalog);return catalog;
+}
+export function deleteChannel(assignments:AssignmentRow[],channelId:string):MasterCatalog {
+  const catalog=loadCatalog(assignments),channel=catalog.channels.find(row=>row.id===channelId);
+  if(!channel)throw new Error("ไม่พบช่องทางส่งงานที่ต้องการลบ");
+  if(assignments.some(row=>row.submission_channel===channel.name))throw new Error("ลบช่องทางนี้ไม่ได้ เพราะมีงานใช้งานอยู่");
+  catalog.channels=catalog.channels.filter(row=>row.id!==channelId);write(catalog);return catalog;
 }

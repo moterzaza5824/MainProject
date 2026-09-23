@@ -13,7 +13,7 @@ import { renderAuth } from "../src/views/auth";
 import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
-import { loadCatalog } from "../src/services/catalog";
+import { deleteChannel, deleteSubject, loadCatalog } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
 import type { PostInput, AssignmentInput, ProgressRow } from "../src/types/models";
@@ -344,6 +344,10 @@ test("master data page adds subject and channel choices used by the assignment f
   renderAssignmentForm(ctx);
   assert.match((ctx.root.querySelector('[name="subject_id"]') as HTMLSelectElement).textContent!,/Discrete Mathematics · ปี 2569 · ภาคเรียนที่ 1 · 3 Sec/);
   assert.match((ctx.root.querySelector('[name="channel_id"]') as HTMLSelectElement).textContent!,/Moodle/);
+  const catalog=loadCatalog(ctx.data.assignments),subject=catalog.subjects.find(row=>row.name==="Discrete Mathematics")!,channel=catalog.channels.find(row=>row.name==="Moodle")!;
+  assert.equal(deleteSubject(ctx.data.assignments,ctx.data.posts,subject.id).subjects.some(row=>row.id===subject.id),false);
+  assert.equal(deleteChannel(ctx.data.assignments,channel.id).channels.some(row=>row.id===channel.id),false);
+  assert.throws(()=>deleteSubject(ctx.data.assignments,ctx.data.posts,loadCatalog(ctx.data.assignments).subjects.find(row=>row.name==="Object-Oriented Programming")!.id),/ใช้งานอยู่/);
 });
 
 test("all page renderers provide content for both roles and missing records", async () => {
