@@ -13,7 +13,7 @@ import { renderAuth } from "../src/views/auth";
 import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
-import { addSubject, deleteChannel, deleteSubject, loadCatalog, updateChannel, updateSubject } from "../src/services/catalog";
+import { addSubject, deleteSubject, loadCatalog, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
 import type { PostInput, AssignmentInput, ProgressRow } from "../src/types/models";
@@ -402,35 +402,32 @@ test("assignment editor publishes one-section subjects to the whole course witho
   assert.equal(ctx.root.querySelector<HTMLElement>("#unified-fields")!.hidden,false);
   assert.equal(ctx.root.querySelector<HTMLElement>("#split-fields")!.hidden,true);
   assert.match(ctx.root.querySelector("#schedule-note")!.textContent!,/เผยแพร่งานให้ทั้งวิชา/);
-  (form.elements.namedItem("channel_id") as HTMLSelectElement).value=(form.elements.namedItem("channel_id") as HTMLSelectElement).options[1].value;
+  (form.elements.namedItem("submission_channel") as HTMLInputElement).value="Microsoft Teams ห้องวิชา";
   (form.elements.namedItem("title") as HTMLInputElement).value="งานสำหรับทั้งวิชา";
   (form.elements.namedItem("description") as HTMLTextAreaElement).value="รายละเอียดงาน";
   (form.elements.namedItem("all") as HTMLInputElement).value="2026-10-01T10:00";
   form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
   const saved=(await repo.snapshot()).assignments.find(row=>row.title==="งานสำหรับทั้งวิชา")!;
   assert.equal(saved.subject_id,oneSection.id);assert.equal(saved.schedule_mode,"UNIFIED");
+  assert.equal(saved.submission_channel,"Microsoft Teams ห้องวิชา");
   assert.ok(saved.due_dates.all);assert.equal(saved.due_dates.sec_1,undefined);
 });
 
-test("master data page adds subject and channel choices used by the assignment form", async () => {
+test("master data manages subjects while each assignment accepts a custom submission channel", async () => {
   const ctx=await context("admin");renderCatalog(ctx);
-  const kind=ctx.root.querySelector<HTMLSelectElement>("#catalog-kind")!;
+  assert.equal(ctx.root.querySelector("#catalog-kind"),null);
+  assert.equal(ctx.root.querySelector("#channel-catalog-form"),null);
   const subjectForm=ctx.root.querySelector<HTMLFormElement>("#subject-catalog-form")!;
   (subjectForm.elements.namedItem("name") as HTMLInputElement).value="Discrete Mathematics";
   (subjectForm.elements.namedItem("academic_year") as HTMLInputElement).value="2569";
   (subjectForm.elements.namedItem("section_count") as HTMLInputElement).value="3";
   subjectForm.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
-  kind.value="channel";kind.dispatchEvent(new Event("change",{bubbles:true}));
-  const channelForm=ctx.root.querySelector<HTMLFormElement>("#channel-catalog-form")!;
-  assert.equal(channelForm.hidden,false);
-  (channelForm.elements.namedItem("name") as HTMLInputElement).value="Moodle";
-  channelForm.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
   renderAssignmentForm(ctx);
   assert.match((ctx.root.querySelector('[name="subject_id"]') as HTMLSelectElement).textContent!,/Discrete Mathematics · ปี 2569 · ภาคเรียนที่ 1 · 3 Sec/);
-  assert.match((ctx.root.querySelector('[name="channel_id"]') as HTMLSelectElement).textContent!,/Moodle/);
-  const catalog=loadCatalog(ctx.data.assignments),subject=catalog.subjects.find(row=>row.name==="Discrete Mathematics")!,channel=catalog.channels.find(row=>row.name==="Moodle")!;
+  assert.ok(ctx.root.querySelector<HTMLInputElement>('[name="submission_channel"]'));
+  assert.equal(ctx.root.querySelector('[name="channel_id"]'),null);
+  const catalog=loadCatalog(ctx.data.assignments),subject=catalog.subjects.find(row=>row.name==="Discrete Mathematics")!;
   assert.equal(deleteSubject(ctx.data.assignments,ctx.data.posts,subject.id).subjects.some(row=>row.id===subject.id),false);
-  assert.equal(deleteChannel(ctx.data.assignments,channel.id).channels.some(row=>row.id===channel.id),false);
   assert.throws(()=>deleteSubject(ctx.data.assignments,ctx.data.posts,loadCatalog(ctx.data.assignments).subjects.find(row=>row.name==="Object-Oriented Programming")!.id),/ใช้งานอยู่/);
   const oop=loadCatalog(ctx.data.assignments).subjects.find(row=>row.name==="Object-Oriented Programming")!;
   const edited=updateSubject(ctx.data.assignments,ctx.data.posts,oop.id,{name:"Advanced Object-Oriented Programming",academicYear:oop.academicYear,semester:oop.semester,sectionCount:oop.sectionCount});
@@ -438,9 +435,6 @@ test("master data page adds subject and channel choices used by the assignment f
   const subjectSnapshot=await repo.snapshot();
   assert.ok(subjectSnapshot.assignments.filter(row=>row.subject_id===oop.id).every(row=>row.subject_name==="Advanced Object-Oriented Programming"));
   assert.ok(subjectSnapshot.posts.filter(row=>row.subject_id===oop.id).every(row=>row.subject_name==="Advanced Object-Oriented Programming"));
-  const teams=loadCatalog(subjectSnapshot.assignments).channels.find(row=>row.name==="Microsoft Teams")!;
-  updateChannel(subjectSnapshot.assignments,teams.id,"UP LMS");await repo.updateChannelReferences(teams.name,"UP LMS");
-  assert.ok((await repo.snapshot()).assignments.filter(row=>row.submission_channel==="UP LMS").length>0);
 });
 
 test("all page renderers provide content for both roles and missing records", async () => {
