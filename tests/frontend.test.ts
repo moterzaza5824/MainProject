@@ -54,12 +54,21 @@ test("role guards reject unauthorized mutations and progress remains private", a
   await repo.saveProgress("oop-lab4","DONE","บันทึกของนิสิต");
   await repo.signIn("admin");
   assert.equal((await repo.snapshot()).progress.some(p=>p.uid===student.user.uid), false);
-  await repo.saveProgress("oop-lab4","DOING","ผู้ดูแล");
+  await repo.saveProgress("oop-lab4","TODO","ผู้ดูแล");
   await repo.signIn("student");
   const rows=(await repo.snapshot()).progress.filter(p=>p.assignment_id==="oop-lab4");
   assert.equal(rows.length,1); assert.equal(rows[0].status,"DONE");
   await repo.saveProgress("oop-lab4","TODO","ใหม่");
   assert.equal((await repo.snapshot()).progress.filter(p=>p.assignment_id==="oop-lab4").length,1);
+});
+
+test("legacy doing progress migrates to unfinished", async () => {
+  const legacy=createSeed(),row=legacy.progress[0] as unknown as {status:string};
+  row.status="DOING";
+  localStorage.setItem("se68-demo-data-v1",JSON.stringify(legacy));
+  await repo.signIn("student");
+  assert.equal((await repo.snapshot()).progress.find(progress=>progress.assignment_id===row.assignment_id)?.status,"TODO");
+  assert.equal(JSON.parse(localStorage.getItem("se68-demo-data-v1")!).progress[0].status,"TODO");
 });
 
 test("demo username/password login validates credentials and Google explains setup", async () => {
@@ -111,7 +120,7 @@ test("reject and downgrade are separate outcomes; deleting a task cascades its p
   await repo.reviewPost("pending-workshop","reject");
   assert.equal((await repo.getPost("pending-workshop"))!.status,"rejected");
   const a=await repo.saveAssignment(taskInput());
-  await repo.saveProgress(a.assignment_id,"DOING","draft");
+  await repo.saveProgress(a.assignment_id,"TODO","draft");
   await repo.deleteAssignment(a.assignment_id);
   assert.equal((await repo.snapshot()).progress.some(p=>p.assignment_id===a.assignment_id),false);
   await assert.rejects(repo.saveProgress(a.assignment_id,"DONE",""));
@@ -331,12 +340,16 @@ test("list status select saves and detail refresh removes stale urgency", async 
   const ctx=await context();
   renderTasks(ctx);
   const select=ctx.root.querySelector<HTMLSelectElement>('[data-task-status="oop-lab4"]')!;
+  assert.deepEqual([...select.options].map(option=>option.value),["TODO","DONE"]);
+  assert.deepEqual([...select.options].map(option=>option.textContent),["○ ยังไม่เสร็จ","✓ เสร็จแล้ว"]);
+  assert.equal(ctx.root.querySelector<HTMLSelectElement>("#status-filter")!.textContent!.includes("กำลังทำ"),false);
   select.value="DONE";select.dispatchEvent(new Event("change",{bubbles:true}));await flush();
   assert.equal((await repo.snapshot()).progress.find(p=>p.assignment_id==="oop-lab4")!.status,"DONE");
   await repo.saveProgress("oop-lab4","TODO","");await ctx.refresh();
   win.location.href="http://localhost:5173/pages/assignments/detail/?id=oop-lab4";
   renderTaskDetail(ctx);
   const form=ctx.root.querySelector<HTMLFormElement>("#progress-form")!;
+  assert.deepEqual([...(form.elements.namedItem("status") as HTMLSelectElement).options].map(option=>option.value),["TODO","DONE"]);
   (form.elements.namedItem("status") as HTMLSelectElement).value="DONE";
   form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
   assert.equal((form.elements.namedItem("note") as HTMLTextAreaElement).disabled,true);
@@ -519,7 +532,8 @@ test("sidebar collapse preference persists and active menu is correct", async ()
   assert.match(document.querySelector('[aria-current="page"]')!.textContent!,/งานและการบ้าน/);
   assert.ok(document.querySelector('a[href="/pages/posts/requests/"]'));
   const studentMenu=[...document.querySelectorAll<HTMLAnchorElement>("#sidebar-nav>a")].map(link=>link.textContent!.trim());
-  assert.deepEqual(studentMenu.slice(0,6),["ภาพรวม","ข่าวสาร","งานและการบ้าน","ปฏิทิน","รายวิชาของฉัน","คำขอประกาศของฉัน"]);
+  assert.deepEqual(studentMenu,["ภาพรวม","ข่าวสาร","งานและการบ้าน","รายวิชาของฉัน","คำขอประกาศของฉัน","โปรไฟล์"]);
+  assert.equal(document.querySelector('a[href="/pages/calendar/"]'),null);
   document.querySelector<HTMLButtonElement>("#collapse-menu")!.click();
   assert.equal(localStorage.getItem("se68-sidebar-collapsed"),"true");
   assert.ok(document.body.classList.contains("sidebar-collapsed"));

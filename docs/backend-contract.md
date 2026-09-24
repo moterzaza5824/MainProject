@@ -23,7 +23,7 @@ VITE_* จะอยู่ใน JavaScript ฝั่งผู้ใช้ ใส
 | users | uid, email, student_id, full_name, role, created_at, updated_at | uid UUID = auth.users.id; student/admin; unique email |
 | posts | post_id, author_id, author_name, title, content, category, status, is_pinned, image_url, subject_id, subject_name, target_scope, target_sections, attachments, approved_by, created_at, updated_at | UUID PK; author/reviewer FK users; official/general; published/pending/rejected |
 | assignments | assignment_id, created_by, subject_name, title, description, submission_channel, schedule_mode, due_dates, resources, created_at, updated_at | UUID PK; creator FK; UNIFIED/SPLIT |
-| user_task_progress | id, uid, assignment_id, status, note, updated_at | id text uid_assignmentId; UNIQUE(uid,assignment_id); FK; TODO/DOING/DONE |
+| user_task_progress | id, uid, assignment_id, status, note, updated_at | id text uid_assignmentId; UNIQUE(uid,assignment_id); FK; TODO/DONE |
 
 - post_id/assignment_id default gen_random_uuid(); timestamps เป็น timestamptz default now(); server ควรเป็นผู้กำหนด updated_at
 - target_sections ใช้ integer[] เช่น {1,2}; ALL เป็น array ว่าง, SPECIFIC มี 1/2 ไม่ซ้ำ

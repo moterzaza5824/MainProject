@@ -36,6 +36,10 @@ export class DemoRepository implements Repository {
     try {
       const data = JSON.parse(text);
       if (!Array.isArray(data.users) || !Array.isArray(data.assignments) || !Array.isArray(data.posts) || !Array.isArray(data.progress)) throw new Error();
+      if(data.progress.some((row:{status?:string})=>row.status!=="TODO"&&row.status!=="DONE")){
+        data.progress=data.progress.map((row:{status?:string;[key:string]:unknown})=>({...row,status:row.status==="DONE"?"DONE":"TODO"}));
+        this.write(data);
+      }
       return data;
     } catch { throw new Error("ข้อมูลตัวอย่างในเบราว์เซอร์เสียหาย กรุณาล้างข้อมูลเว็บไซต์แล้วลองใหม่"); }
   }
@@ -146,7 +150,7 @@ export class DemoRepository implements Repository {
   async saveProgress(id: string, status: TaskStatus, note: string): Promise<void> {
     const user = await this.user(), data = this.read();
     if (!data.assignments.some(a => a.assignment_id === id)) throw new Error("งานนี้ถูกลบแล้ว");
-    if (!["TODO", "DOING", "DONE"].includes(status) || note.length > 2000) throw new Error("สถานะหรือบันทึกไม่ถูกต้อง");
+    if (!["TODO", "DONE"].includes(status) || note.length > 2000) throw new Error("สถานะหรือบันทึกไม่ถูกต้อง");
     const row = { id: user.uid + "_" + id, uid: user.uid, assignment_id: id, status, note, updated_at: new Date().toISOString() };
     data.progress = [...data.progress.filter(p => p.id !== row.id), row]; this.write(data);
   }

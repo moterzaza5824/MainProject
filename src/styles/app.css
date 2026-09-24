@@ -155,7 +155,6 @@ label>input,label>select,label>textarea{margin-top:7px}
 .day-number{font-size:12px;display:block;margin-bottom:8px}
 .day.today .day-number{color:var(--green);font-weight:800}
 .calendar-event{display:block;padding:5px 7px;background:#eef3f0;border-left:2px solid #738d7c;border-radius:4px;font-size:12px;color:#445d4d;margin:4px 0;line-height:1.5;overflow-wrap:anywhere}
-.calendar-event.doing{background:#fff4db;border-color:#d79c31;color:#8b5e0c}
 .calendar-event.done{background:#e5f5eb;border-color:#34a765;color:#1b7847}
 .calendar-event.urgent,.calendar-event.overdue{outline:1px solid #e8a6a1}
 .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:18px;font-size:12px;color:var(--muted)}

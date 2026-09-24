@@ -39,5 +39,4 @@ export async function busy(button: HTMLButtonElement, work: () => Promise<void>)
   finally { button.disabled = false; button.removeAttribute("aria-busy"); button.innerHTML = content; }
 }
 export function badge(label: string, kind = "") { return `<span class="badge ${kind}">${e(label)}</span>`; }
-export function statusBadge(status: string) { return badge(({ TODO: "ยังไม่เริ่ม", DOING: "กำลังทำ", DONE: "ทำเสร็จแล้ว" } as Record<string,string>)[status] ?? status, status.toLowerCase()); }
-
+export function statusBadge(status: string) { return badge(status === "DONE" ? "เสร็จแล้ว" : "ยังไม่เสร็จ", status === "DONE" ? "done" : "todo"); }

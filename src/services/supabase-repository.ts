@@ -73,7 +73,8 @@ export class SupabaseRepository implements Repository {
     ]);
     if (publishedCount.error) throw publishedCount.error;
     const posts = [...new Map([...official.rows, ...mine.rows, ...pending.rows].map(p => [p.post_id, p])).values()];
-    return { posts, assignments: assignments as AssignmentRow[], progress: progress as ProgressRow[], users: [user], post_counts: { pending: pending.total, published: publishedCount.count ?? 0 } };
+    const normalizedProgress=progress.map(row=>{const value=row as ProgressRow&{status:string};return {...value,status:value.status==="DONE"?"DONE" as const:"TODO" as const};});
+    return { posts, assignments: assignments as AssignmentRow[], progress: normalizedProgress, users: [user], post_counts: { pending: pending.total, published: publishedCount.count ?? 0 } };
   }
   async getPost(id: string): Promise<PostRow | null> {
     await this.user();
@@ -154,7 +155,7 @@ export class SupabaseRepository implements Repository {
   }
   async saveProgress(id: string, status: TaskStatus, note: string) {
     const user = await this.user();
-    if (!["TODO", "DOING", "DONE"].includes(status) || note.length > 2000) throw new Error("สถานะหรือบันทึกไม่ถูกต้อง");
+    if (!["TODO", "DONE"].includes(status) || note.length > 2000) throw new Error("สถานะหรือบันทึกไม่ถูกต้อง");
     const { error } = await this.client.from("user_task_progress").upsert({ id: user.uid + "_" + id, uid: user.uid, assignment_id: id, status, note, updated_at: new Date().toISOString() }, { onConflict: "uid,assignment_id" });
     if (error) throw error;
   }

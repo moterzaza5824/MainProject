@@ -1,7 +1,7 @@
 export type Role = "student" | "admin";
 export type Section = "ALL" | `${number}`;
 export type AcademicSemester = "1" | "2";
-export type TaskStatus = "TODO" | "DOING" | "DONE";
+export type TaskStatus = "TODO" | "DONE";
 export type PostCategory = "official" | "general";
 export type PostStatus = "published" | "pending" | "rejected";
 export interface UserRow {

@@ -24,7 +24,7 @@ export function createSeed(): Snapshot {
       { post_id: "pending-workshop", author_id: "student-demo", author_name: users[0].full_name, title: "ขอประกาศกิจกรรม Workshop Git สำหรับ SE68", content: "เสนอจัดกิจกรรมเรียนรู้ Git เบื้องต้นสำหรับเพื่อนร่วมรุ่น\nหัวข้อ: branch, commit และ pull request\nขอให้ตัวแทนรุ่นตรวจสอบรายละเอียดก่อนเผยแพร่เป็นประกาศทางการ", category: "official", status: "pending", is_pinned: false, subject_id: "seed-subject-3", subject_name: "Web Development", target_scope: "ALL", target_sections: [], attachments: [], created_at: iso, updated_at: iso }
     ],
     progress: [
-      { id: "student-demo_oop-lab4", uid: "student-demo", assignment_id: "oop-lab4", status: "DOING", note: "เหลือทดสอบ method overriding", updated_at: iso },
+      { id: "student-demo_oop-lab4", uid: "student-demo", assignment_id: "oop-lab4", status: "TODO", note: "เหลือทดสอบ method overriding", updated_at: iso },
       { id: "student-demo_web-dashboard", uid: "student-demo", assignment_id: "web-dashboard", status: "DONE", note: "ตรวจ responsive แล้ว", updated_at: iso }
     ]
   };
