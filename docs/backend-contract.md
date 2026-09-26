@@ -28,10 +28,10 @@ VITE_* จะอยู่ใน JavaScript ฝั่งผู้ใช้ ใส
 - post_id/assignment_id default gen_random_uuid(); timestamps เป็น timestamptz default now(); server ควรเป็นผู้กำหนด updated_at
 - target_sections ใช้ integer[] เช่น {1,2}; ALL เป็น array ว่าง, SPECIFIC มี 1/2 ไม่ซ้ำ
 - image_url, subject_id และ subject_name เป็น nullable สำหรับข่าวทั่วไป; ข่าวทางการต้องมี subject_id/subject_name และกำหนดผู้รับเป็นทุก Sec หรือ Sec ที่อยู่ในรายวิชานั้น
-- attachments เป็น jsonb array ของ {name,url}; resources เป็น text[]; default []
+- attachments และ resources เป็น jsonb array ของ `{name,url}`; default `[]` โดย resources รูปแบบเดิมที่เป็น URL string จะถูก frontend แปลงเป็นชื่อ `เอกสารประกอบ N` ชั่วคราว
 - due_dates เป็น jsonb: UNIFIED มี all เท่านั้น; SPLIT มี sec_1/sec_2 อย่างน้อยหนึ่งค่า เป็น ISO timestamp
 - approved_by nullable; client ไม่ควรเลือก role/owner/reviewer เอง
-- title ≤160, content/description ≤10000, subject/channel ≤120, note ≤2000; validate ที่ server ซ้ำ
+- title ≤160, content/description ≤10000, subject/channel ≤120, ชื่อเอกสาร ≤100, note ≤2000; validate ที่ server ซ้ำ
 - กำหนด ON DELETE CASCADE assignments → progress ให้ตรงคำเตือน UI หรือเปลี่ยน flow ก่อนใช้ soft delete
 - สร้าง index สำหรับ author_id, status/category/is_pinned/updated_at และ unique progress
 

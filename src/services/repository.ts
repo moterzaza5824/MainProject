@@ -1,9 +1,23 @@
-import type { AssignmentInput, PostInput, PostQuery, Repository, Snapshot, Role, TaskStatus, UserRow } from "../types/models";
+import type { AssignmentInput, Attachment, PostInput, PostQuery, Repository, Snapshot, Role, TaskStatus, UserRow } from "../types/models";
 import { createSeed } from "./seed";
 import { safeUrl } from "../utils/html";
 import { canViewPostForEnrollments } from "./enrollment";
 
 const STORE = "se68-demo-data-v1", SESSION = "se68-demo-user-v1";
+export function normalizeAssignmentResources(value: unknown): Attachment[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((resource,index) => {
+    if (typeof resource === "string") {
+      const url=resource.trim();
+      return url ? [{ name: `เอกสารประกอบ ${index+1}`, url }] : [];
+    }
+    if (!resource || typeof resource !== "object") return [];
+    const row=resource as {name?:unknown;url?:unknown},url=typeof row.url === "string" ? row.url.trim() : "";
+    if (!url) return [];
+    const name=typeof row.name === "string" && row.name.trim() ? row.name.trim() : `เอกสารประกอบ ${index+1}`;
+    return [{ name, url }];
+  });
+}
 export function validatePost(input: PostInput): void {
   if (!input.title.trim() || !input.content.trim()) throw new Error("กรุณาระบุหัวข้อและเนื้อหาประกาศ");
   if (input.title.length > 160 || input.content.length > 10000) throw new Error("หัวข้อยาวได้ไม่เกิน 160 และเนื้อหาไม่เกิน 10,000 ตัวอักษร");
@@ -26,7 +40,7 @@ export function validateAssignment(input: AssignmentInput): void {
   if (input.title.length > 160 || input.subject_name.length > 120 || input.submission_channel.length > 120 || input.description.length > 10000) throw new Error("ข้อมูลยาวเกินกำหนด");
   const dates = input.schedule_mode === "UNIFIED" ? [input.due_dates.all] : Object.entries(input.due_dates).filter(([key])=>key.startsWith("sec_")).map(([,date])=>date).filter(Boolean);
   if (!dates.length || dates.some(d => !d || !Number.isFinite(Date.parse(d)))) throw new Error("กรุณากำหนดวันส่งอย่างน้อยหนึ่งกลุ่มให้ถูกต้อง");
-  if (input.resources.some(url => !safeUrl(url))) throw new Error("ลิงก์โจทย์ต้องเป็น http หรือ https");
+  if (input.resources.some(resource => !resource.name.trim() || resource.name.length > 100 || !safeUrl(resource.url))) throw new Error("เอกสารแนบต้องมีชื่อไม่เกิน 100 ตัวอักษร และ URL ต้องเป็น http หรือ https");
 }
 export class DemoRepository implements Repository {
   readonly mode = "demo" as const;
@@ -36,11 +50,18 @@ export class DemoRepository implements Repository {
     try {
       const data = JSON.parse(text);
       if (!Array.isArray(data.users) || !Array.isArray(data.assignments) || !Array.isArray(data.posts) || !Array.isArray(data.progress)) throw new Error();
+      let changed=false;
       if(data.progress.some((row:{status?:string})=>row.status!=="TODO"&&row.status!=="DONE")){
         data.progress=data.progress.map((row:{status?:string;[key:string]:unknown})=>({...row,status:row.status==="DONE"?"DONE":"TODO"}));
-        this.write(data);
+        changed=true;
       }
-      return data;
+      data.assignments=data.assignments.map((row:{resources?:unknown;[key:string]:unknown})=>{
+        const resources=normalizeAssignmentResources(row.resources);
+        if(JSON.stringify(resources)!==JSON.stringify(row.resources??[]))changed=true;
+        return {...row,resources};
+      });
+      if(changed)this.write(data as Snapshot);
+      return data as Snapshot;
     } catch { throw new Error("ข้อมูลตัวอย่างในเบราว์เซอร์เสียหาย กรุณาล้างข้อมูลเว็บไซต์แล้วลองใหม่"); }
   }
   private write(data: Snapshot): void {

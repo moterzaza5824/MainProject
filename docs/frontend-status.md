@@ -17,7 +17,7 @@
 | โปรไฟล์ | profile/ | บัญชี, ประกาศของฉัน, ออกจากระบบ |
 | อนุมัติ | admin/approvals/ | อนุมัติ/ปฏิเสธ/เผยแพร่เป็นทั่วไป |
 | จัดการประกาศ | admin/posts/, admin/posts/form/?id=... | CRUD, pin, ตรวจคำขอ |
-| จัดการงาน | admin/assignments/, admin/assignments/form/?id=... | CRUD, UNIFIED/SPLIT, ลิงก์เอกสาร |
+| จัดการงาน | admin/assignments/, admin/assignments/form/?id=... | CRUD, UNIFIED/SPLIT, เอกสารแบบชื่อพร้อม URL |
 | ข้อมูลพื้นฐาน | admin/catalog/ | เพิ่ม/แก้ไข/ลบรายวิชา พร้อมตรวจการอ้างอิง |
 
 ฟอร์มเพิ่มกับแก้ใช้หน้าเดียวกัน; ไม่มี id คือเพิ่มใหม่
@@ -25,7 +25,7 @@
 ## ตรวจสอบแล้ว
 
 - TypeScript strict และ production build
-- ทดสอบอัตโนมัติ 27 รายการ: สิทธิ์, migration สถานะ, private progress/upsert, moderation, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment, master data, page render, sidebar preference
+- ทดสอบอัตโนมัติ 28 รายการ: สิทธิ์, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment, master data, page render, sidebar preference
 - DOM tests ใช้ happy-dom ไม่ใช่ภาพจริงหรือ E2E บน Chrome
 - ทดสอบ hidden/disabled ของฟอร์มด้วย DOM; การแสดงผล responsive/CSS ยังต้องตรวจบนอุปกรณ์จริงก่อน production
 - ยังไม่ทดสอบ OAuth, Supabase DB/RLS, หลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน

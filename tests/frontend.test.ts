@@ -62,12 +62,15 @@ test("role guards reject unauthorized mutations and progress remains private", a
   assert.equal((await repo.snapshot()).progress.filter(p=>p.assignment_id==="oop-lab4").length,1);
 });
 
-test("legacy doing progress migrates to unfinished", async () => {
+test("legacy progress and assignment resource URLs migrate to current formats", async () => {
   const legacy=createSeed(),row=legacy.progress[0] as unknown as {status:string};
   row.status="DOING";
+  (legacy.assignments[0] as unknown as {resources:string[]}).resources=["https://example.com/legacy-brief.pdf"];
   localStorage.setItem("se68-demo-data-v1",JSON.stringify(legacy));
   await repo.signIn("student");
-  assert.equal((await repo.snapshot()).progress.find(progress=>progress.assignment_id===row.assignment_id)?.status,"TODO");
+  const snapshot=await repo.snapshot();
+  assert.equal(snapshot.progress.find(progress=>progress.assignment_id===row.assignment_id)?.status,"TODO");
+  assert.deepEqual(snapshot.assignments[0].resources,[{name:"เอกสารประกอบ 1",url:"https://example.com/legacy-brief.pdf"}]);
   assert.equal(JSON.parse(localStorage.getItem("se68-demo-data-v1")!).progress[0].status,"TODO");
 });
 
@@ -143,6 +146,8 @@ test("input validation and safe formatting reject dangerous links and invalid sc
   assert.throws(()=>validatePost({...postInput("official"),subject_id:null,subject_name:null}),/ประกาศทางการ/);
   assert.throws(()=>validateAssignment({...taskInput(),schedule_mode:"SPLIT",due_dates:{}}));
   assert.throws(()=>validateAssignment({...taskInput(),due_dates:{sec_1:"2026-09-20"}}));
+  assert.throws(()=>validateAssignment({...taskInput(),resources:[{name:"",url:"https://example.com/brief.pdf"}]}),/ต้องมีชื่อ/);
+  assert.throws(()=>validateAssignment({...taskInput(),resources:[{name:"โจทย์งาน",url:"javascript:alert(1)"}]}),/http หรือ https/);
   validateAssignment({...taskInput(),schedule_mode:"SPLIT",due_dates:{sec_2:"2026-09-20T12:00:00Z"}});
   assert.equal(safeUrl("data:text/html,bad"),null);
   document.querySelector("#app")!.innerHTML=markdown('## หัวข้อ\n<img src=x onerror="alert(1)">\n**หนา**');
@@ -406,11 +411,24 @@ test("assignment editor publishes one-section subjects to the whole course witho
   (form.elements.namedItem("title") as HTMLInputElement).value="งานสำหรับทั้งวิชา";
   (form.elements.namedItem("description") as HTMLTextAreaElement).value="รายละเอียดงาน";
   (form.elements.namedItem("all") as HTMLInputElement).value="2026-10-01T10:00";
+  ctx.root.querySelector<HTMLButtonElement>("#add-assignment-resource")!.click();
+  (ctx.root.querySelector("[data-resource-name]") as HTMLInputElement).value="โจทย์ Sprint Review";
+  (ctx.root.querySelector("[data-resource-url]") as HTMLInputElement).value="https://example.com/sprint-review";
   form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
   const saved=(await repo.snapshot()).assignments.find(row=>row.title==="งานสำหรับทั้งวิชา")!;
   assert.equal(saved.subject_id,oneSection.id);assert.equal(saved.schedule_mode,"UNIFIED");
   assert.equal(saved.submission_channel,"Microsoft Teams ห้องวิชา");
+  assert.deepEqual(saved.resources,[{name:"โจทย์ Sprint Review",url:"https://example.com/sprint-review"}]);
   assert.ok(saved.due_dates.all);assert.equal(saved.due_dates.sec_1,undefined);
+});
+
+test("assignment details show meaningful resource names", async () => {
+  const ctx=await context("student");
+  win.location.href="http://localhost:5173/pages/assignments/detail/?id=oop-lab4";
+  renderTaskDetail(ctx);
+  const resource=ctx.root.querySelector<HTMLAnchorElement>(".resource-link")!;
+  assert.match(resource.textContent!,/บทเรียน Java: Inheritance/);
+  assert.equal(resource.href,"https://docs.oracle.com/javase/tutorial/java/IandI/subclasses.html");
 });
 
 test("master data manages subjects while each assignment accepts a custom submission channel", async () => {
