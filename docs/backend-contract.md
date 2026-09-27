@@ -77,6 +77,7 @@ review ใช้ conditional update เฉพาะ pending; savePost มี upd
 - assignment resources ใช้ `jsonb` รายการ `{name,url}` ตรงกับฟอร์ม โดย migration แปลง URL รูปแบบเดิมให้โดยไม่ทิ้งข้อมูล
 - DB กำหนด `created_by` และคง identity/audit fields เอง; progress เขียนได้เฉพาะ assignment ที่ RLS อนุญาตให้ผู้ใช้นั้นเห็น
 - การแก้ assignment ใช้ `updated_at` เป็น optimistic concurrency guard เพื่อไม่เขียนทับการแก้จากอีกหน้าจอ
+- remote-safe RLS smoke test จำลอง 2 students + 1 admin ใน transaction และ rollback หลังตรวจ private progress, pending post, role และ owner fields
 - profile provisioning และการจำกัดบัญชี `68xxxxxx@up.ac.th`
 - adapter สำหรับ subjects/enrollments รวมถึง posts/assignments/progress
 
