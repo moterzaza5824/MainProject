@@ -21,7 +21,7 @@ export interface AssignmentRow {
   academic_year?: number | null; semester?: AcademicSemester | null; title: string;
   description: string; submission_channel: string; schedule_mode: "UNIFIED" | "SPLIT";
   due_dates: { all?: string; [section: `sec_${number}`]: string | undefined };
-  resources: string[]; created_at: string; updated_at: string;
+  resources: Attachment[]; created_at: string; updated_at: string;
 }
 export interface EnrollmentRow {
   enrollment_id: string; uid: string; subject_id: string; academic_year: number;

@@ -1,6 +1,11 @@
 import { createClient } from "@supabase/supabase-js";
+<<<<<<< HEAD
 import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, SubjectInput, TaskStatus, UserRow } from "../types/models";
 import { validateAssignment, validatePost } from "./repository";
+=======
+import type { AssignmentInput, AssignmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, TaskStatus, UserRow } from "../types/models";
+import { normalizeAssignmentResources, validateAssignment, validatePost } from "./repository";
+>>>>>>> c419e98797793c11153ac4891b7423e0871686b3
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
 import { canViewPostForEnrollments } from "./enrollment";
@@ -76,7 +81,8 @@ export class SupabaseRepository implements Repository {
     if (publishedCount.error) throw publishedCount.error;
     const posts = [...new Map([...official.rows, ...mine.rows, ...pending.rows].map(p => [p.post_id, p])).values()];
     const normalizedProgress=progress.map(row=>{const value=row as ProgressRow&{status:string};return {...value,status:value.status==="DONE"?"DONE" as const:"TODO" as const};});
-    return { posts, assignments: assignments as AssignmentRow[], progress: normalizedProgress, users: [user], post_counts: { pending: pending.total, published: publishedCount.count ?? 0 } };
+    const normalizedAssignments=(assignments as AssignmentRow[]).map(row=>({...row,resources:normalizeAssignmentResources(row.resources)}));
+    return { posts, assignments: normalizedAssignments, progress: normalizedProgress, users: [user], post_counts: { pending: pending.total, published: publishedCount.count ?? 0 } };
   }
   async getPost(id: string): Promise<PostRow | null> {
     await this.user();
@@ -139,9 +145,18 @@ export class SupabaseRepository implements Repository {
   }
   async saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow> {
     validateAssignment(input); const user = await this.user(true);
+<<<<<<< HEAD
     if(!input.subject_id||!input.academic_year||!input.semester)throw new Error("กรุณาเลือกรายวิชาจากข้อมูลพื้นฐาน");
     const query = id ? this.client.from("assignments").update(input).eq("assignment_id", id) : this.client.from("assignments").insert({ ...input, created_by: user.uid });
     const { data, error } = await query.select(TASK_FIELDS).single(); if (error) throw error; return data as AssignmentRow;
+=======
+    const {subject_id:_subjectId,academic_year:_academicYear,semester:_semester,...databaseInput}=input;
+    const query = id ? this.client.from("assignments").update({ ...databaseInput, updated_at: new Date().toISOString() }).eq("assignment_id", id) : this.client.from("assignments").insert({ ...databaseInput, created_by: user.uid });
+    const { data, error } = await query.select(TASK_FIELDS).single();
+    if (error) throw error;
+    const row=data as AssignmentRow;
+    return {...row,resources:normalizeAssignmentResources(row.resources)};
+>>>>>>> c419e98797793c11153ac4891b7423e0871686b3
   }
   async deleteAssignment(id: string) {
     await this.user(true); const { data, error } = await this.client.from("assignments").delete().eq("assignment_id", id).select("assignment_id");
