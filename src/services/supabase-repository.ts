@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, SubjectInput, TaskStatus, UserRow } from "../types/models";
-import { normalizeAssignmentResources, validateAssignment, validatePost } from "./repository";
+import { normalizeAssignmentResources, validateAssignment, validatePost } from "./validation";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
 const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";

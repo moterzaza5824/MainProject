@@ -1,7 +1,8 @@
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { Window } from "happy-dom";
-import { DemoRepository, validateAssignment, validatePost } from "../src/services/repository";
+import { DemoRepository } from "../src/services/demo-repository";
+import { validateAssignment, validatePost } from "../src/services/validation";
 import { createSeed } from "../src/services/seed";
 import { markdown, safeUrl } from "../src/utils/html";
 import { matchesSection, taskUrgency, fromThaiInput, thaiInput, formatDate, formatTime } from "../src/utils/tasks";
@@ -13,6 +14,7 @@ import { renderAuth } from "../src/views/auth";
 import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
+import { pageDataRequirements } from "../src/services/page-data";
 import { addSubject, deleteSubject, loadCatalog, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
@@ -45,6 +47,21 @@ const postInput = (category: "general" | "official" = "general"): PostInput => (
 const taskInput = (): AssignmentInput => ({
   title: "งานทดสอบ", subject_name: "OOP", description: "ทำตามโจทย์", submission_channel: "Teams",
   schedule_mode: "UNIFIED", due_dates: { all: new Date(Date.now()+3600000).toISOString() }, resources: []
+});
+
+test("page data loading avoids unrelated database work", () => {
+  assert.deepEqual(pageDataRequirements("official", "student", "supabase"), {
+    snapshot: false, catalog: false, enrollments: true, post: false, ownPosts: false
+  });
+  assert.deepEqual(pageDataRequirements("dashboard", "student", "supabase"), {
+    snapshot: true, catalog: true, enrollments: true, post: false, ownPosts: false
+  });
+  assert.deepEqual(pageDataRequirements("adminPosts", "admin", "supabase"), {
+    snapshot: false, catalog: false, enrollments: false, post: false, ownPosts: false
+  });
+  assert.equal(pageDataRequirements("adminCatalog", "admin", "supabase").snapshot, false);
+  assert.equal(pageDataRequirements("adminCatalog", "admin", "demo").snapshot, true);
+  assert.equal(pageDataRequirements("profile", "student", "supabase").ownPosts, true);
 });
 
 test("role guards reject unauthorized mutations and progress remains private", async () => {

@@ -59,9 +59,9 @@ export function renderPosts(ctx: Context, initialCategory: "official" | "general
     if(b.dataset.tab){tab=b.dataset.tab;page=1;ctx.root.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("active",el===b));render();}
     if(b.dataset.page){page+=Number(b.dataset.page);render();}
     if(b.hasAttribute("data-retry"))void render();
-    if(b.dataset.pin)void busy(b,async()=>{const p=currentRows.find(p=>p.post_id===b.dataset.pin);if(!p)return;await ctx.repo.pinPost(p.post_id,!p.is_pinned);await ctx.refresh();await render();toast(p.is_pinned?"ยกเลิกปักหมุดแล้ว":"ปักหมุดแล้ว");});
-    if(b.dataset.approve)void busy(b,async()=>{if(await confirmAction("อนุมัติประกาศ","ประกาศนี้จะเผยแพร่บนบอร์ดทางการทันที","อนุมัติ")){await ctx.repo.reviewPost(b.dataset.approve!,"approve");await ctx.refresh();render();toast("อนุมัติและเผยแพร่แล้ว");}});
-    if(b.dataset.delete)void busy(b,async()=>{if(await confirmAction("ลบประกาศ","ประกาศที่ลบจะไม่สามารถเรียกคืนผ่านหน้าจอนี้ได้","ลบประกาศ")){await ctx.repo.deletePost(b.dataset.delete!);await ctx.refresh();render();toast("ลบประกาศแล้ว");}});
+    if(b.dataset.pin)void busy(b,async()=>{const p=currentRows.find(p=>p.post_id===b.dataset.pin);if(!p)return;await ctx.repo.pinPost(p.post_id,!p.is_pinned);await render();toast(p.is_pinned?"ยกเลิกปักหมุดแล้ว":"ปักหมุดแล้ว");});
+    if(b.dataset.approve)void busy(b,async()=>{if(await confirmAction("อนุมัติประกาศ","ประกาศนี้จะเผยแพร่บนบอร์ดทางการทันที","อนุมัติ")){await ctx.repo.reviewPost(b.dataset.approve!,"approve");render();toast("อนุมัติและเผยแพร่แล้ว");}});
+    if(b.dataset.delete)void busy(b,async()=>{if(await confirmAction("ลบประกาศ","ประกาศที่ลบจะไม่สามารถเรียกคืนผ่านหน้าจอนี้ได้","ลบประกาศ")){await ctx.repo.deletePost(b.dataset.delete!);render();toast("ลบประกาศแล้ว");}});
   });render();
 }
 export function renderPostDetail(ctx:Context){

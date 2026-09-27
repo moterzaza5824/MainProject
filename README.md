@@ -25,6 +25,7 @@ npm run dev
 
 ```sh
 npm test
+npm run test:quality
 npm run typecheck
 npm run build
 npm run preview
@@ -41,4 +42,4 @@ npm run preview
 - [ข้อเสนอเพิ่มเติมที่ยังไม่ได้ลงมือทำ](docs/recommendations.md)
 - [Product Backlog และลำดับส่งมอบ](docs/backlog.md)
 
-Schema, profile trigger, RLS, seed และ Supabase adapter ถูกเตรียมพร้อมสำหรับ deploy แล้ว แต่ **ยังไม่ได้ deploy/ทดสอบกับ Supabase project จริงใน repository นี้** และ Realtime ยังไม่เปิดใช้ ดูขั้นตอนใน `docs/backend-setup.md` และห้ามใส่ service-role key ใน `VITE_*` หรือ Git
+Schema, profile trigger, RLS, seed และ Supabase adapter อยู่ใน `supabase/migrations/` และตรวจสัญญาอัตโนมัติเมื่อรัน `npm test` การตั้งค่า project/Google OAuth ทำภายนอก repository ตาม `docs/backend-setup.md` และห้ามใส่ service-role key ใน `VITE_*` หรือ Git

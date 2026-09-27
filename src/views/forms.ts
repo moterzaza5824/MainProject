@@ -6,7 +6,7 @@ import { fromThaiInput, thaiInput } from "../utils/tasks";
 import { heading } from "../ui/shell";
 import { dialog, empty } from "../ui/primitives";
 import { icon } from "../ui/icons";
-import { validateAssignment, validatePost } from "../services/repository";
+import { validateAssignment, validatePost } from "../services/validation";
 import { guardDirty } from "../utils/dirty-form";
 import { loadCatalog } from "../services/catalog";
 import { semesterLabel } from "../services/enrollment";

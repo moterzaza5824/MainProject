@@ -3,10 +3,10 @@
 ใช้ SRS เป็นขอบเขตระบบ และเอกสาร UI/UX เป็นแนวทางออกแบบ ไม่ได้รันคำสั่งหรือเพิ่ม framework ตามข้อความ prompt ตัวอย่างในเอกสาร
 
 ```text
-Project2026_1/
+MainProject/
 ├─ src/
 │  ├─ index.html / entry.ts   จุดเริ่มต้น → Login/Dashboard
-│  ├─ bootstrap.ts           โหลด session, ตรวจ route/สิทธิ์, สร้าง Context
+│  ├─ bootstrap.ts           โหลด session, ตรวจ route/สิทธิ์ และส่งต่อให้ view
 │  ├─ pages/                 HTML entry และ page.ts แยกแต่ละ URL
 │  │  ├─ auth/               login, access-denied
 │  │  ├─ dashboard/
@@ -19,14 +19,17 @@ Project2026_1/
 │  ├─ ui/                    shell, icons, dialog, toast, badge, Context
 │  ├─ styles/                tokens.css และ app.css
 │  ├─ types/models.ts        โมเดลกลาง + Repository interface
-│  ├─ services/              Repository, demo seed, Supabase adapter
-│  ├─ guards/                ตัวช่วยตรวจบัญชี/บทบาท
-│  ├─ layouts/               ตัวเรียก shell ร่วมกัน
+│  ├─ services/
+│  │  ├─ repository.ts       เลือก adapter ตาม VITE_DATA_MODE
+│  │  ├─ page-data.ts        โหลดข้อมูลเท่าที่ route นั้นใช้งาน
+│  │  ├─ supabase-repository.ts / demo-repository.ts
+│  │  ├─ validation.ts       กฎตรวจข้อมูลก่อนบันทึก
+│  │  └─ catalog.ts / enrollment.ts / seed.ts
 │  └─ utils/                 เวลาไทย, HTML/URL safety, dirty-form guard
 ├─ tests/                    Logic และ DOM integration tests
-├─ scripts/test.mjs          ตัวรันทดสอบ
-├─ docs/                     คู่มือและข้อเสนอที่ยังไม่ได้เพิ่ม
-├─ supabase/                 ช่องสำหรับ backend; SQL ยังเป็น TODO
+├─ scripts/                  ตัวรันทดสอบ, ตรวจโครงสร้าง และตรวจ build
+├─ docs/                     คู่มือระบบ
+├─ supabase/migrations/      Schema, function, trigger และ RLS
 ├─ public/                   static assets
 ├─ .env.example              ตัวอย่าง data mode
 └─ vite.config.ts            HTML entry และ output dist
@@ -34,12 +37,14 @@ Project2026_1/
 
 ## การไหลของข้อมูล
 
-`page.ts → bootstrap → Context/Repository → view → mutation → refresh`
+`page.ts → bootstrap → page-data → Repository → Context/view → mutation → refresh`
 
 หน้าจอไม่เรียก Supabase SDK โดยตรง เลือกผู้ให้ข้อมูลที่ getRepository():
 
 - demo: จำลอง CRUD/บทบาทด้วย localStorage และแสดงป้ายทดลองชัดเจน
-- supabase: Google OAuth และ query ตารางผ่าน SDK; ต้องมี backend ที่ตรวจสิทธิ์จริงก่อน
+- supabase: Google OAuth และ query ตารางผ่าน SDK โดยฐานข้อมูลบังคับสิทธิ์ด้วย RLS
+
+`page-data.ts` กำหนดความต้องการราย route หน้ารายการประกาศจึงไม่โหลด snapshot ของงานและความคืบหน้า ส่วนหน้ารายละเอียดโหลดเฉพาะ record ที่เปิดอยู่ การ refresh ใช้กติกาเดียวกันเพื่อลด query ที่ไม่เกี่ยวข้อง
 
 Snapshot.posts เป็นข้อมูลย่อ Dashboard ไม่ใช่รายการประกาศทั้งหมด บอร์ดใช้ listPosts({page,pageSize,category,status,own,section}) คืน {rows,total} แสดง 10 รายการต่อหน้า (adapter จำกัดสูงสุด 15)
 
@@ -56,5 +61,6 @@ Snapshot.posts เป็นข้อมูลย่อ Dashboard ไม่ใช
 - ลิงก์ภายนอกเฉพาะ http/https พร้อม noopener/noreferrer
 - DONE คือความคืบหน้าส่วนตัว ไม่ใช่ส่งงานผ่าน Teams/Classroom
 - static host ต้องเสิร์ฟ index.html ภายในโฟลเดอร์ URL
+- รัน `npm test` ทุกครั้ง ตัวตรวจ quality จะปฏิเสธ TypeScript ที่ไม่มี entry เรียกใช้, import วน และโมดูลที่ใหญ่เกิน 30 KB
 
-นำ scaffold ที่ไม่มีผู้เรียกใช้ 20 ไฟล์ออก (components, types, styles, utils ที่ซ้ำ) เพื่อไม่ให้มีโมเดลสองชุด เรียกคืนเวอร์ชันเดิมได้จากประวัติ Git ไม่ได้ลบ .git หรือเอกสาร SRS
+ไฟล์ compatibility wrapper ที่ไม่มีผู้เรียกใช้ถูกนำออกเพื่อให้มีทางเข้าระบบและโมเดลข้อมูลเพียงชุดเดียว เรียกคืนเวอร์ชันเดิมได้จากประวัติ Git

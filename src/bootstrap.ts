@@ -11,7 +11,7 @@ import { renderPostDetail, renderPosts } from "./views/posts";
 import { renderAssignmentForm, renderPostForm } from "./views/forms";
 import { renderCatalog } from "./views/catalog";
 import { renderEnrollment } from "./views/enrollment";
-import { applyStudentVisibility, canViewPostForEnrollments } from "./services/enrollment";
+import { loadPageData } from "./services/page-data";
 async function bootstrap() {
   const root=document.querySelector<HTMLElement>("#app")!;
   root.innerHTML='<div class="loading" role="status">กำลังเตรียมพื้นที่ของคุณ…</div>';
@@ -36,33 +36,21 @@ async function bootstrap() {
     let active=route==="assignmentDetail"?"assignments":route==="postDetail"||route==="postForm"||route==="general"?"official":route==="adminPostForm"?"adminPosts":route==="assignmentForm"?"adminAssignments":route;
     const content=mountShell(user,active,repo);
     try {
-      let catalog={subjects:await repo.getSubjects(),channels:[]};
-      let enrollments=user.role==="student"?await repo.getEnrollments():undefined;
-      const loadData=async()=>{
-        const raw=await repo.snapshot();
-        if(user.role!=="student"||!enrollments)return raw;
-        const feed=await repo.listPosts({status:"published",pageSize:15,enrollments});
-        raw.posts=[...new Map([...raw.posts,...feed.rows].map(post=>[post.post_id,post])).values()];
-        return applyStudentVisibility(raw,user,enrollments,catalog);
-      };
-      let data=await loadData();
+      let pageData=await loadPageData(repo,user,route);
       const postId = new URLSearchParams(location.search).get("id");
-      if (postId && ["postDetail","postForm","adminPostForm"].includes(route)) {
-        const post = await repo.getPost(postId);
-        if (post&&(user.role!=="student"||!enrollments||canViewPostForEnrollments(post,enrollments,user.uid))) data.posts = [...data.posts.filter(p => p.post_id !== postId), post];
-      }
-      const selectedPost=data.posts.find(p=>p.post_id===postId);
-      const reviewerName=selectedPost?.approved_by ? await repo.getReviewerName(selectedPost.approved_by) : null;
+      const selectedPost=pageData.data.posts.find(p=>p.post_id===postId);
       if(route==="postDetail" && selectedPost) {
         active=selectedPost.status!=="published"&&selectedPost.author_id===user.uid&&user.role==="student"?"requests":"official";
         document.querySelectorAll("#sidebar-nav a").forEach(link=>{
           if(link.getAttribute("href")===href(active))link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
         });
       }
-      const ctx:Context={root:content,repo,user,data,catalog,enrollments,reviewerName,async refresh(){
-        catalog={subjects:await repo.getSubjects(),channels:[]};
-        enrollments=user.role==="student"?await repo.getEnrollments():undefined;
-        ctx.catalog=catalog;ctx.enrollments=enrollments;ctx.data=await loadData();
+      const ctx:Context={root:content,repo,user,...pageData,async refresh(){
+        pageData=await loadPageData(repo,user,route);
+        ctx.catalog=pageData.catalog;
+        ctx.enrollments=pageData.enrollments;
+        ctx.reviewerName=pageData.reviewerName;
+        ctx.data=pageData.data;
       }};
       switch(route){
         case "dashboard":renderDashboard(ctx);break;
