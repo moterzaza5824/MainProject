@@ -22,9 +22,9 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
   const deniedPanel = '<div class="info-box">สำหรับนิสิตรหัสขึ้นต้น 6802 และใช้อีเมล @up.ac.th เท่านั้น ส่วนหน้าจัดการระบบจำกัดสิทธิ์เฉพาะ Admin</div><a class="button primary" href="' + href("dashboard") + '">กลับหน้าภาพรวม</a><button class="button" id="change-account">เปลี่ยนบัญชี</button>';
 
   root.innerHTML = `<div class="auth-page"><section class="auth-story"><a class="brand" href="${href("login")}"><span class="brand-symbol">S<span>68</span></span><span>SE68 <b>HUB</b></span></a><div><p class="eyebrow" style="color:#83d9a6">YOUR CAMPUS. CONNECTED.</p><h1>ทุกข่าวสาร<br>ทุกงานของรุ่น<br><span>อยู่ที่เดียวกัน</span></h1><p>พื้นที่สำหรับนิสิตวิศวกรรมซอฟต์แวร์ รุ่น 68 ติดตามเรื่องสำคัญและจัดการงานของคุณได้อย่างเป็นระเบียบ</p><div class="auth-features"><div class="auth-feature">${icon("news")} ไม่พลาดประกาศสำคัญ</div><div class="auth-feature">${icon("calendar")} กำหนดส่งแยกตาม Section</div><div class="auth-feature">${icon("check")} เห็นความคืบหน้าของตัวเอง</div></div></div><footer>UNIVERSITY OF PHAYAO · SOFTWARE ENGINEERING</footer></section>
-  <section class="auth-content"><div class="auth-box"><div class="auth-icon">${icon(denied ? "shield" : "book")}</div><p class="eyebrow">SE68 INFORMATION HUB</p><h2>${denied ? "ไม่สามารถเข้าใช้งานหน้านี้" : "ยินดีต้อนรับกลับ"}</h2><p class="subtitle">${denied ? "หน้านี้ต้องใช้บัญชีที่มีสิทธิ์เหมาะสม กรุณาตรวจสอบบัญชีและบทบาทผู้ใช้" : "เข้าสู่ระบบเพื่อเริ่มต้นวันเรียนของคุณ"}</p>
+  <main class="auth-content"><div class="auth-box"><div class="auth-icon">${icon(denied ? "shield" : "book")}</div><p class="eyebrow">SE68 INFORMATION HUB</p><h2>${denied ? "ไม่สามารถเข้าใช้งานหน้านี้" : "ยินดีต้อนรับกลับ"}</h2><p class="subtitle">${denied ? "หน้านี้ต้องใช้บัญชีที่มีสิทธิ์เหมาะสม กรุณาตรวจสอบบัญชีและบทบาทผู้ใช้" : "เข้าสู่ระบบเพื่อเริ่มต้นวันเรียนของคุณ"}</p>
   ${denied ? deniedPanel : loginPanel}
-  <p class="auth-note">SE68 Hub · มหาวิทยาลัยพะเยา</p><div id="auth-error" role="alert" aria-live="polite"></div></div></section></div>`;
+  <p class="auth-note">SE68 Hub · มหาวิทยาลัยพะเยา</p><div id="auth-error" role="alert" aria-live="polite"></div></div></main></div>`;
 
   const error = root.querySelector<HTMLElement>("#auth-error");
   const showError = (value: unknown) => { if (error) error.textContent = value instanceof Error ? value.message : "เข้าสู่ระบบไม่สำเร็จ"; };
@@ -63,6 +63,6 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
 
 export function renderFailure(root: HTMLElement, error: unknown) {
   const message = error instanceof Error ? error.message : "เกิดข้อผิดพลาด กรุณาลองใหม่";
-  root.innerHTML = `<section class="empty" style="max-width:680px;margin:80px auto"><div class="empty-symbol">${icon("alert")}</div><h1>ไม่สามารถโหลดข้อมูลได้</h1><p>${e(message)}</p><div class="actions"><button class="button primary" id="retry-page">ลองอีกครั้ง</button><a class="button" href="${href("login")}">กลับหน้าเข้าสู่ระบบ</a></div></section>`;
+  root.innerHTML = `<main class="empty" style="max-width:680px;margin:80px auto"><div class="empty-symbol">${icon("alert")}</div><h1>ไม่สามารถโหลดข้อมูลได้</h1><p>${e(message)}</p><div class="actions"><button class="button primary" id="retry-page">ลองอีกครั้ง</button><a class="button" href="${href("login")}">กลับหน้าเข้าสู่ระบบ</a></div></main>`;
   root.querySelector<HTMLButtonElement>("#retry-page")!.onclick = () => location.reload();
 }

@@ -9,6 +9,17 @@ export default defineConfig({
   root: "src",
   envDir: projectDirectory,
   publicDir: "../public",
+  plugins: [{
+    name: "inject-site-icon",
+    transformIndexHtml: {
+      order: "pre",
+      handler: () => [{
+        tag: "link",
+        attrs: { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+        injectTo: "head"
+      }]
+    }
+  }],
   build: {
     outDir: "../dist",
     emptyOutDir: true,

@@ -111,6 +111,7 @@ test("demo username/password login validates credentials and Google explains set
   await repo.signOut();
   await assert.rejects(repo.signInWithGoogle(),/Supabase/);
   renderAuth(document.querySelector("#app")!,repo);
+  assert.ok(document.querySelector("main.auth-content"));
   assert.ok(document.querySelector("#login-form"));
   assert.ok(document.querySelector("#google-login"));
   assert.match(document.body.textContent!,/@up\.ac\.th/);
