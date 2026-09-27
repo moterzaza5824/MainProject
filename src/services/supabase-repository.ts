@@ -18,7 +18,14 @@ export class SupabaseRepository implements Repository {
     if (!url || !key || url.includes("your-project")) throw new Error("ยังไม่ได้ตั้งค่าการเชื่อมต่อ Supabase");
     this.url = url.replace(/\/$/, "");
     this.key = key;
-    this.client = createClient(url, key);
+    this.client = createClient(url, key, {
+      auth: {
+        // Keep the user signed in while navigating between this multi-page app's
+        // screens, but require a new sign-in after the browser tab is closed.
+        storage: window.sessionStorage,
+        persistSession: true
+      }
+    });
   }
   async currentUser(): Promise<UserRow | null> {
     const session = await this.client.auth.getSession();
@@ -71,10 +78,16 @@ export class SupabaseRepository implements Repository {
       if (error instanceof Error && error.message.includes("Google Login ยังไม่เปิด")) throw error;
       // A transient settings request must not block the OAuth attempt itself.
     }
-    const { error } = await this.client.auth.signInWithOAuth({ provider: "google", options: { redirectTo: new URL(href("dashboard"), location.origin).href, queryParams: { hd: "up.ac.th" } } });
+    const { error } = await this.client.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: new URL(href("dashboard"), location.origin).href,
+        queryParams: { hd: "up.ac.th", prompt: "select_account" }
+      }
+    });
     if (error) throw error;
   }
-  async signOut() { const { error } = await this.client.auth.signOut(); if (error) throw error; }
+  async signOut() { const { error } = await this.client.auth.signOut({ scope: "local" }); if (error) throw error; }
   async snapshot(): Promise<Snapshot> {
     const user = await this.user();
     // Batch paging avoids the default 1,000-row truncation. Replace with server-filtered
