@@ -15,7 +15,7 @@ import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
 import { pageDataRequirements } from "../src/services/page-data";
-import { isEligibleCohortEmail, sessionAuthMethod } from "../src/services/auth-policy";
+import { isEligibleCohortEmail, normalizeAdminLoginEmail, sessionAuthMethod } from "../src/services/auth-policy";
 import { addSubject, deleteSubject, loadCatalog, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
@@ -72,6 +72,9 @@ test("cohort access accepts only 6802 student accounts", () => {
   assert.equal(isEligibleCohortEmail("68999999@up.ac.th"), false);
   assert.equal(isEligibleCohortEmail("68020001@gmail.com"), false);
   assert.equal(isEligibleCohortEmail("6802001@up.ac.th"), false);
+  assert.equal(normalizeAdminLoginEmail("68020001"), "68020001@up.ac.th");
+  assert.equal(normalizeAdminLoginEmail(" Admin@example.com "), "admin@example.com");
+  assert.equal(normalizeAdminLoginEmail("admin"), null);
   const token = (amr: string) => `header.${btoa(JSON.stringify({ amr: [{ method: amr }] }))}.signature`;
   assert.equal(sessionAuthMethod(token("password")), "password");
   assert.equal(sessionAuthMethod(token("oauth")), "oauth");

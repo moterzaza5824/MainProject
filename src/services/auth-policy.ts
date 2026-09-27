@@ -1,9 +1,17 @@
 export const COHORT_EMAIL_PATTERN = /^6802[0-9]{4}@up\.ac\.th$/i;
+const STUDENT_ID_PATTERN = /^6802[0-9]{4}$/;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type SessionAuthMethod = "password" | "oauth" | "other";
 
 export function isEligibleCohortEmail(email: string | null | undefined): boolean {
   return COHORT_EMAIL_PATTERN.test(email?.trim() ?? "");
+}
+
+export function normalizeAdminLoginEmail(identifier: string): string | null {
+  const value = identifier.trim().toLowerCase();
+  if (STUDENT_ID_PATTERN.test(value)) return `${value}@up.ac.th`;
+  return EMAIL_PATTERN.test(value) ? value : null;
 }
 
 export function sessionAuthMethod(accessToken: string): SessionAuthMethod {

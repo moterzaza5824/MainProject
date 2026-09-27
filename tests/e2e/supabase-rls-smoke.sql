@@ -16,6 +16,39 @@ begin
 end;
 $$;
 
+do $$
+declare was_rejected boolean := false;
+begin
+  begin
+    insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+    values (
+      '55555555-5555-4555-8555-555555555555', 'external-google@example.com',
+      '{"provider":"google","providers":["google"]}', '{"full_name":"External Google"}', now(), now()
+    );
+  exception when others then
+    was_rejected := true;
+  end;
+  if not was_rejected then raise exception 'external OAuth account was accepted'; end if;
+end;
+$$;
+
+insert into auth.users (id, email, encrypted_password, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+values (
+  '66666666-6666-4666-8666-666666666666', 'external-admin@example.com', 'test-password-hash',
+  '{"provider":"email","providers":["email"]}', '{"full_name":"External Admin"}', now(), now()
+);
+
+do $$
+declare saved_role text; saved_student_id text;
+begin
+  select role, student_id into saved_role, saved_student_id
+  from public.users where uid = '66666666-6666-4666-8666-666666666666';
+  if saved_role <> 'pending_admin' or saved_student_id is not null then
+    raise exception 'external password account did not start as pending_admin';
+  end if;
+end;
+$$;
+
 insert into auth.users (id, email, raw_user_meta_data, created_at, updated_at)
 values
   ('11111111-1111-4111-8111-111111111111', '68029991@up.ac.th', '{"full_name":"RLS Student One"}', now(), now()),
@@ -25,6 +58,10 @@ values
 update public.users
 set role = 'admin'
 where uid = '33333333-3333-4333-8333-333333333333';
+
+update public.users
+set role = 'admin'
+where uid = '66666666-6666-4666-8666-666666666666' and role = 'pending_admin';
 
 insert into public.subjects (subject_id, name, academic_year, semester, section_count, created_by)
 values
@@ -233,6 +270,43 @@ begin
 
   select created_by into actual_owner from public.assignments where assignment_id = 'b3333333-3333-4333-8333-333333333333';
   if actual_owner <> '33333333-3333-4333-8333-333333333333' then raise exception 'assignment owner was forged'; end if;
+end;
+$$;
+
+select set_config('request.jwt.claim.sub', '66666666-6666-4666-8666-666666666666', true);
+select set_config('request.jwt.claims', '{"sub":"66666666-6666-4666-8666-666666666666","role":"authenticated","amr":[{"method":"password","timestamp":1}]}', true);
+
+insert into public.subjects (subject_id, name, academic_year, semester, section_count, created_by)
+values (
+  'a6666666-6666-4666-8666-666666666666', 'External admin subject', 2699, '1', 1,
+  '11111111-1111-4111-8111-111111111111'
+);
+
+do $$
+declare actual_owner uuid;
+begin
+  select created_by into actual_owner from public.subjects where subject_id = 'a6666666-6666-4666-8666-666666666666';
+  if actual_owner <> '66666666-6666-4666-8666-666666666666' then
+    raise exception 'external password admin did not receive administrator access';
+  end if;
+end;
+$$;
+
+select set_config('request.jwt.claims', '{"sub":"66666666-6666-4666-8666-666666666666","role":"authenticated","amr":[{"method":"oauth","timestamp":1}]}', true);
+
+do $$
+declare was_blocked boolean := false;
+begin
+  begin
+    insert into public.subjects (subject_id, name, academic_year, semester, section_count, created_by)
+    values (
+      'a7777777-7777-4777-8777-777777777777', 'External OAuth must be blocked', 2699, '1', 1,
+      '66666666-6666-4666-8666-666666666666'
+    );
+  exception when insufficient_privilege then
+    was_blocked := true;
+  end;
+  if not was_blocked then raise exception 'external OAuth session received application access'; end if;
 end;
 $$;
 

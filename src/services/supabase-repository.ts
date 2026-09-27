@@ -3,7 +3,7 @@ import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuer
 import { normalizeAssignmentResources, validateAssignment, validatePost } from "./validation";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
-import { isEligibleCohortEmail, sessionAuthMethod } from "./auth-policy";
+import { isEligibleCohortEmail, normalizeAdminLoginEmail, sessionAuthMethod } from "./auth-policy";
 const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
 const TASK_FIELDS = "assignment_id,created_by,subject_id,subject_name,academic_year,semester,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
 const SUBJECT_FIELDS = "subject_id,name,academic_year,semester,section_count";
@@ -34,11 +34,25 @@ export class SupabaseRepository implements Repository {
     const { data, error } = await this.client.auth.getUser();
     if (error) throw error;
     if (!data.user) return null;
-    if (!isEligibleCohortEmail(data.user.email)) { await this.signOut(); throw new AccessDeniedError("ระบบนี้อนุญาตเฉพาะบัญชีนิสิตรหัส 6802xxxx@up.ac.th"); }
-    const result = await this.client.from("users").select("uid,email,student_id,full_name,role,created_at,updated_at").eq("uid", data.user.id).single();
-    if (result.error) throw new Error("ยังไม่พบข้อมูลผู้ใช้ กรุณาตรวจสอบการสร้างโปรไฟล์ในระบบ");
-    const profile = result.data as UserRow;
+    const cohortAccount = isEligibleCohortEmail(data.user.email);
     const authMethod = sessionAuthMethod(session.data.session.access_token);
+    if (!cohortAccount && authMethod !== "password") {
+      await this.signOut();
+      throw new AccessDeniedError("บัญชีภายนอกมหาวิทยาลัยต้องเข้าสู่ระบบด้วยอีเมลและ Password ของผู้ดูแล");
+    }
+    const result = await this.client.from("users").select("uid,email,student_id,full_name,role,created_at,updated_at").eq("uid", data.user.id).single();
+    if (result.error) {
+      if (!cohortAccount) {
+        await this.signOut();
+        throw new AccessDeniedError("บัญชีนี้ยังไม่ได้รับอนุมัติเป็นผู้ดูแลระบบ");
+      }
+      throw new Error("ยังไม่พบข้อมูลผู้ใช้ กรุณาตรวจสอบการสร้างโปรไฟล์ในระบบ");
+    }
+    const profile = result.data as UserRow;
+    if (!cohortAccount && profile.role !== "admin") {
+      await this.signOut();
+      throw new AccessDeniedError("บัญชีนี้ยังไม่ได้รับอนุมัติเป็นผู้ดูแลระบบ");
+    }
     return { ...profile, auth_method: authMethod, role: profile.role === "admin" && authMethod !== "password" ? "student" : profile.role };
   }
   onAuthStateChange(callback: (signedIn: boolean) => void): () => void {
@@ -57,20 +71,19 @@ export class SupabaseRepository implements Repository {
     await this.signInWithGoogle();
   }
   async signInWithPassword(username: string, password: string) {
-    const value = username.trim().toLowerCase();
-    const email = value.includes("@") ? value : value + "@up.ac.th";
-    if (!isEligibleCohortEmail(email)) throw new AccessDeniedError("กรุณาใช้รหัสนิสิต 6802xxxx หรืออีเมล 6802xxxx@up.ac.th");
+    const email = normalizeAdminLoginEmail(username);
+    if (!email) throw new AccessDeniedError("กรุณากรอกอีเมลผู้ดูแลให้ถูกต้อง");
     if (!password) throw new Error("กรุณากรอก Password");
     const { error } = await this.client.auth.signInWithPassword({ email, password });
     if (error) {
-      if (error.code === "email_not_confirmed") throw new Error("กรุณายืนยันอีเมลมหาวิทยาลัยก่อนเข้าสู่ระบบ");
+      if (error.code === "email_not_confirmed") throw new Error("กรุณายืนยันอีเมลผู้ดูแลก่อนเข้าสู่ระบบ");
       if (error.code === "over_request_rate_limit" || error.status === 429) throw new Error("ลองเข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่");
-      throw new Error("Username หรือ Password ไม่ถูกต้อง");
+      throw new Error("อีเมลหรือ Password ไม่ถูกต้อง");
     }
     const user = await this.currentUser();
     if (user?.role !== "admin") {
       await this.signOut();
-      throw new AccessDeniedError("Username/Password ใช้สำหรับผู้ดูแลระบบเท่านั้น นิสิตกรุณาเข้าสู่ระบบด้วย Google");
+      throw new AccessDeniedError("Email/Password ใช้สำหรับผู้ดูแลระบบเท่านั้น นิสิตกรุณาเข้าสู่ระบบด้วย Google");
     }
   }
   async signInWithGoogle() {

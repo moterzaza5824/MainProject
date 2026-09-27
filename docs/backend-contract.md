@@ -20,7 +20,7 @@ VITE_* จะอยู่ใน JavaScript ฝั่งผู้ใช้ ใส
 
 | ตาราง | fields | constraint/default |
 |---|---|---|
-| users | uid, email, student_id, full_name, role, created_at, updated_at | uid UUID = auth.users.id; student/admin; unique email |
+| users | uid, email, student_id, full_name, role, created_at, updated_at | uid UUID = auth.users.id; student/admin/pending_admin; student_id ว่างได้เฉพาะบัญชีผู้ดูแลภายนอก; unique email |
 | subjects | subject_id, name, academic_year, semester, section_count, created_by, created_at, updated_at | UUID PK; ชื่อไม่ซ้ำในปี/ภาคเรียนเดียวกัน |
 | enrollments | enrollment_id, uid, subject_id, academic_year, semester, section, created_at, updated_at | หนึ่ง Sec ต่อ user/subject; section ต้องอยู่ในช่วงของวิชา |
 | posts | post_id, author_id, author_name, title, content, category, status, is_pinned, image_url, subject_id, subject_name, target_scope, target_sections, attachments, approved_by, created_at, updated_at | UUID PK; author/reviewer FK users; official/general; published/pending/rejected |
@@ -44,10 +44,10 @@ adapter อ่าน public_profiles เฉพาะ uid/full_name สร้า�
 ## Authentication
 
 1. ตั้ง Google provider และ redirect allowlist ให้ตรง /pages/dashboard/ ทั้ง localhost/เว็บจริงสำหรับนิสิต
-   เปิด Email provider สำหรับ Admin; Username ที่กรอกเป็นรหัสนิสิตจะถูกแปลงเป็น `รหัสนิสิต@up.ac.th`
+   เปิด Email provider สำหรับ Admin ที่ใช้อีเมลทั่วไปและ Password
 2. สร้าง users profile ฝั่ง server หลัง login แรก ใช้ auth.users.id ไม่ใช่ email หรือ Google sub
-3. ตรวจ verified email ด้วย `^6802[0-9]{4}@up\.ac\.th$` ที่ server; OAuth `hd` เป็น hint ไม่ใช่สิทธิ์
-4. role เริ่มต้น student; ตั้ง admin ผ่านผู้ดูแลที่เชื่อถือได้ ห้าม client เลือก role จริง และให้สิทธิ์ admin เฉพาะ JWT ที่มี `amr.method = password`; OAuth ของบัญชี admin ทำงานในฐานะ student
+3. ตรวจ verified student email ด้วย `^6802[0-9]{4}@up\.ac\.th$` ที่ server; OAuth `hd` เป็น hint ไม่ใช่สิทธิ์ บัญชี Email/Password ภายนอกเริ่มเป็น `pending_admin` และไม่มีสิทธิ์ในแอป
+4. ตั้ง admin ผ่านผู้ดูแลที่เชื่อถือได้ ห้าม client เลือก role จริง และให้สิทธิ์ admin เฉพาะ JWT ที่มี `amr.method = password`; OAuth ของบัญชี `6802` ทำงานในฐานะ student และ OAuth ภายนอกถูกปฏิเสธ
 5. ป้องกัน client เปลี่ยน uid/email/student_id/role
 6. ตรวจ session หมดอายุ บัญชีไม่ผ่านเกณฑ์ และถอนสิทธิ์ทุก API
 

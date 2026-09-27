@@ -6,7 +6,7 @@
 
 | กลุ่ม | URL ภายใต้ /pages/ | การทำงาน |
 |---|---|---|
-| บัญชี | auth/login/, auth/access-denied/ | Admin ผ่าน Username/Password เท่านั้น, นิสิตผ่าน Google `6802xxxx@up.ac.th`, แจ้งสิทธิ์, เปลี่ยนบัญชี |
+| บัญชี | auth/login/, auth/access-denied/ | Admin ผ่านอีเมลทั่วไป/Password เท่านั้น, นิสิตผ่าน Google `6802xxxx@up.ac.th`, แจ้งสิทธิ์, เปลี่ยนบัญชี |
 | ภาพรวม | dashboard/, admin/dashboard/ | สรุปงาน/ประกาศ/คำขอ |
 | ประกาศ | posts/official/, posts/general/ | ข่าวที่เผยแพร่แล้ว กรองตามรายวิชาที่ลงทะเบียนและแบ่งหน้า |
 | คำขอของฉัน | posts/requests/ | คำขอประกาศทางการที่รออนุมัติ/ไม่อนุมัติ แยกจากหน้าข่าว |
@@ -33,6 +33,6 @@
 ## ข้อจำกัด
 
 - repository รองรับ demo เมื่อกำหนด `VITE_DATA_MODE=demo` อย่างชัดเจนเท่านั้น ส่วนเครื่องพัฒนานี้ตั้ง `.env.local` เป็น `VITE_DATA_MODE=supabase` แล้ว รายวิชา/การลงทะเบียน/ประกาศ/งาน/ความคืบหน้าจึงอ่านเขียนฐานข้อมูลจริง
-- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase project แล้ว และ migration 001–007 ตรงกันทั้ง local/remote
+- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase project แล้ว และ migration 001–010 ตรงกันทั้ง local/remote
 - ไม่มี chat, grades, upload, SMS หรือฟีเจอร์ใหม่จากข้อเสนอแนะ
 - DONE ไม่นับเป็นงานด่วน; เลยกำหนดแยกจากงานที่จะถึงกำหนดใน 48 ชั่วโมง

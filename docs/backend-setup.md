@@ -23,21 +23,21 @@ supabase db push --linked --include-seed
 
 1. เปิด Google provider และใส่ Google OAuth client ID/secret สำหรับนิสิต
 2. ตั้ง Site URL และ Redirect URLs ให้ครอบคลุม local/production โดยปลายทางของแอปคือ `/pages/dashboard/`
-3. เปิด Email provider สำหรับผู้ดูแล (Username จะถูกแปลงเป็น `รหัสนิสิต@up.ac.th`)
+3. เปิด Email provider สำหรับผู้ดูแล ซึ่งใช้อีเมลทั่วไปและ Password
 
-Database trigger จะรับเฉพาะอีเมลรูปแบบ `6802xxxx@up.ac.th` และสร้าง `public.users` ด้วย role `student` อัตโนมัติ ค่า `hd=up.ac.th` ใน OAuth เป็นเพียง hint; trigger, constraint และ restrictive RLS เป็นผู้บังคับสิทธิ์จริง จึงไม่ต้องมี allowlist แยกตามข้อกำหนดปัจจุบัน
+Database trigger รับ Google/OAuth เฉพาะอีเมลรูปแบบ `6802xxxx@up.ac.th` และสร้าง role `student` อัตโนมัติ ส่วนอีเมลทั่วไปต้องเป็นบัญชี Email/Password และจะเริ่มด้วย role `pending_admin` ที่ยังอ่านหรือเขียนข้อมูลแอปไม่ได้จนกว่าเจ้าของ project จะอนุมัติ ค่า `hd=up.ac.th` ใน OAuth เป็นเพียง hint; trigger, constraint และ restrictive RLS เป็นผู้บังคับสิทธิ์จริง
 
 Google/OAuth ให้สิทธิ์ระดับนิสิตเสมอ แม้ profile ของบัญชีนั้นมี role `admin` ก็ตาม การใช้สิทธิ์ Admin ต้องเข้าใหม่ด้วย Username/Password เท่านั้น ฐานข้อมูลตรวจ `amr.method = password` จาก Supabase JWT ซ้ำใน `private.is_admin()` จึงไม่สามารถข้ามข้อกำหนดนี้ด้วยการแก้หน้าเว็บ
 
-## 3. ตั้งผู้ดูแลคนแรก
+## 3. เพิ่มผู้ดูแลด้วยอีเมลทั่วไป
 
-1. สร้างหรือเพิ่ม Password identity ให้บัญชี `6802xxxx@up.ac.th` ผ่าน Supabase Auth จากฝั่ง server ที่เชื่อถือได้ ห้ามใช้ `service_role`/secret key ใน browser หรือไฟล์ `VITE_*` หากบัญชีเดิมสร้างผ่าน Google ให้ใช้ Auth Admin API `updateUserById()` จาก server เพื่อกำหนดรหัสผ่าน
+1. เปิด Supabase Dashboard → Authentication → Users → Add user → Create new user กรอกอีเมลทั่วไปและ Password ที่แข็งแรง พร้อม Auto confirm user ห้ามใช้รหัสผ่านร่วมกันหลายคน
 2. เปิด Supabase Dashboard → SQL Editor แล้วตรวจ profile ที่ Auth trigger สร้างให้บัญชีเป้าหมายก่อน:
 
 ```sql
 select uid, email, student_id, full_name, role
 from public.users
-where email = lower('6802XXXX@up.ac.th');
+where email = lower('admin@example.com');
 ```
 
 3. เมื่อยืนยันชื่อและรหัสถูกต้องแล้ว จึงเลื่อนสิทธิ์ด้วยบัญชีเจ้าของ project:
@@ -45,8 +45,9 @@ where email = lower('6802XXXX@up.ac.th');
 ```sql
 update public.users
 set role = 'admin'
-where email = lower('6802XXXX@up.ac.th')
-  and student_id ~ '^6802[0-9]{4}$'
+where email = lower('admin@example.com')
+  and role = 'pending_admin'
+  and student_id is null
 returning uid, email, full_name, role;
 ```
 
@@ -56,12 +57,13 @@ returning uid, email, full_name, role;
 
 ```sql
 update public.users
-set role = 'student'
-where email = lower('6802XXXX@up.ac.th')
+set role = 'pending_admin'
+where email = lower('admin@example.com')
+  and student_id is null
 returning uid, email, full_name, role;
 ```
 
-หลังเพิ่มหรือถอนสิทธิ์ ให้บัญชีนั้น logout แล้ว login ใหม่ด้วย Username/Password เพื่อเข้า Admin การ login ด้วย Google ของบัญชีเดียวกันต้องเห็นเฉพาะสิทธิ์นิสิต
+หลังเพิ่มหรือถอนสิทธิ์ ให้บัญชีนั้น logout แล้ว login ใหม่ด้วย Email/Password เพื่อเข้า Admin บัญชีภายนอกที่พยายามเข้า Google จะถูกออกจากระบบ ส่วนบัญชี `6802` ที่เข้า Google ยังคงได้เฉพาะสิทธิ์นิสิต
 
 ## 4. เปิดโหมด Supabase ใน frontend
 

@@ -9,8 +9,8 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
     ${repo.mode === "demo" ? '<div class="info-box"><b>บัญชีผู้ดูแลทดลอง</b><br>Username: admin<br>Password: se68admin</div>' : ""}
     <p class="eyebrow">ADMIN SIGN IN</p>
     <form id="login-form" class="login-form">
-      <label class="field">Username ผู้ดูแลหรืออีเมลมหาวิทยาลัย
-        <input name="username" autocomplete="username" required placeholder="รหัสนิสิตผู้ดูแล หรือ 6802xxxx@up.ac.th">
+      <label class="field">${repo.mode === "demo" ? "Username ผู้ดูแล" : "อีเมลผู้ดูแล"}
+        <input name="username" ${repo.mode === "demo" ? "" : 'type="email"'} autocomplete="username" required placeholder="${repo.mode === "demo" ? "admin" : "admin@example.com"}">
       </label>
       <label class="field">Password
         <input name="password" type="password" autocomplete="current-password" required placeholder="กรอก Password">
