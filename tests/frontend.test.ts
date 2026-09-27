@@ -15,6 +15,7 @@ import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
 import { pageDataRequirements } from "../src/services/page-data";
+import { isEligibleCohortEmail } from "../src/services/auth-policy";
 import { addSubject, deleteSubject, loadCatalog, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
@@ -62,6 +63,15 @@ test("page data loading avoids unrelated database work", () => {
   assert.equal(pageDataRequirements("adminCatalog", "admin", "supabase").snapshot, false);
   assert.equal(pageDataRequirements("adminCatalog", "admin", "demo").snapshot, true);
   assert.equal(pageDataRequirements("profile", "student", "supabase").ownPosts, true);
+});
+
+test("cohort access accepts only 6802 student accounts", () => {
+  assert.equal(isEligibleCohortEmail("68020001@up.ac.th"), true);
+  assert.equal(isEligibleCohortEmail("68029999@UP.AC.TH"), true);
+  assert.equal(isEligibleCohortEmail("68010001@up.ac.th"), false);
+  assert.equal(isEligibleCohortEmail("68999999@up.ac.th"), false);
+  assert.equal(isEligibleCohortEmail("68020001@gmail.com"), false);
+  assert.equal(isEligibleCohortEmail("6802001@up.ac.th"), false);
 });
 
 test("role guards reject unauthorized mutations and progress remains private", async () => {

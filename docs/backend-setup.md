@@ -25,19 +25,41 @@ supabase db push --linked --include-seed
 2. ตั้ง Site URL และ Redirect URLs ให้ครอบคลุม local/production โดยปลายทางของแอปคือ `/pages/dashboard/`
 3. หากต้องการ Username/Password ให้เปิด Email provider ด้วย (Username จะถูกแปลงเป็น `รหัสนิสิต@up.ac.th`)
 
-Database trigger จะรับเฉพาะอีเมลรูปแบบ `68xxxxxx@up.ac.th` และสร้าง `public.users` ด้วย role `student` อัตโนมัติ ค่า `hd=up.ac.th` ใน OAuth เป็นเพียง hint; trigger และ constraint เป็นผู้บังคับสิทธิ์จริง
+Database trigger จะรับเฉพาะอีเมลรูปแบบ `6802xxxx@up.ac.th` และสร้าง `public.users` ด้วย role `student` อัตโนมัติ ค่า `hd=up.ac.th` ใน OAuth เป็นเพียง hint; trigger, constraint และ restrictive RLS เป็นผู้บังคับสิทธิ์จริง จึงไม่ต้องมี allowlist แยกตามข้อกำหนดปัจจุบัน
 
 ## 3. ตั้งผู้ดูแลคนแรก
 
-ให้ผู้ดูแล login ด้วยบัญชีมหาวิทยาลัยหนึ่งครั้งก่อน แล้วรันใน SQL Editor ด้วยบัญชีเจ้าของ project:
+1. ให้ผู้ดูแล login ด้วยบัญชี `6802xxxx@up.ac.th` หนึ่งครั้ง เพื่อให้ trigger สร้าง profile ด้วย role `student`
+2. เปิด Supabase Dashboard → SQL Editor แล้วตรวจบัญชีเป้าหมายก่อน:
+
+```sql
+select uid, email, student_id, full_name, role
+from public.users
+where email = lower('6802XXXX@up.ac.th');
+```
+
+3. เมื่อยืนยันชื่อและรหัสถูกต้องแล้ว จึงเลื่อนสิทธิ์ด้วยบัญชีเจ้าของ project:
 
 ```sql
 update public.users
 set role = 'admin'
-where email = '68XXXXXX@up.ac.th';
+where email = lower('6802XXXX@up.ac.th')
+  and student_id ~ '^6802[0-9]{4}$'
+returning uid, email, full_name, role;
 ```
 
-ตรวจให้แน่ใจว่าแก้เพียงบัญชีที่ได้รับมอบหมายจริง ห้ามเปิดให้ client เลือก role เอง
+ผลลัพธ์ต้องคืนเพียง 1 แถวและ role เป็น `admin` ถ้าไม่คืนแถวให้หยุดและตรวจอีเมล ห้ามแก้เงื่อนไขให้กว้างหรือเปิดให้ client เลือก role เอง แนะนำให้มีผู้ดูแลจริงอย่างน้อย 2 คนและแต่ละคนใช้บัญชีของตัวเอง
+
+เมื่อต้องการถอนสิทธิ์ ใช้คำสั่งต่อไปนี้และตรวจผลลัพธ์เช่นเดียวกัน:
+
+```sql
+update public.users
+set role = 'student'
+where email = lower('6802XXXX@up.ac.th')
+returning uid, email, full_name, role;
+```
+
+หลังเพิ่มหรือถอนสิทธิ์ ให้บัญชีนั้น logout/login ใหม่ แล้วทดสอบว่าเมนู Admin และการเรียก API ตรงกับ role ใหม่
 
 ## 4. เปิดโหมด Supabase ใน frontend
 

@@ -46,7 +46,7 @@ adapter อ่าน public_profiles เฉพาะ uid/full_name สร้า�
 1. ตั้ง Google provider และ redirect allowlist ให้ตรง /pages/dashboard/ ทั้ง localhost/เว็บจริง
    สำหรับ Password Login ให้เปิด Email provider ใน Supabase ด้วย Username ที่กรอกเป็นรหัสนิสิตจะถูกแปลงเป็น `รหัสนิสิต@up.ac.th`
 2. สร้าง users profile ฝั่ง server หลัง login แรก ใช้ auth.users.id ไม่ใช่ email หรือ Google sub
-3. ตรวจ verified email ด้วย ^68[0-9]{6}@up\.ac\.th$ ที่ server; OAuth hd เป็น hint ไม่ใช่สิทธิ์
+3. ตรวจ verified email ด้วย `^6802[0-9]{4}@up\.ac\.th$` ที่ server; OAuth `hd` เป็น hint ไม่ใช่สิทธิ์
 4. role เริ่มต้น student; ตั้ง admin ผ่านผู้ดูแลที่เชื่อถือได้ ห้าม client เลือก role จริง
 5. ป้องกัน client เปลี่ยน uid/email/student_id/role
 6. ตรวจ session หมดอายุ บัญชีไม่ผ่านเกณฑ์ และถอนสิทธิ์ทุก API
@@ -78,7 +78,7 @@ review ใช้ conditional update เฉพาะ pending; savePost มี upd
 - DB กำหนด `created_by` และคง identity/audit fields เอง; progress เขียนได้เฉพาะ assignment ที่ RLS อนุญาตให้ผู้ใช้นั้นเห็น
 - การแก้ assignment ใช้ `updated_at` เป็น optimistic concurrency guard เพื่อไม่เขียนทับการแก้จากอีกหน้าจอ
 - remote-safe RLS smoke test จำลอง 2 students + 1 admin ใน transaction และ rollback หลังตรวจ private progress, pending post, role และ owner fields
-- profile provisioning และการจำกัดบัญชี `68xxxxxx@up.ac.th`
+- profile provisioning, constraint และ restrictive RLS จำกัดบัญชี `6802xxxx@up.ac.th`
 - adapter สำหรับ subjects/enrollments รวมถึง posts/assignments/progress
 
 ## ยังต้องทำก่อน Production

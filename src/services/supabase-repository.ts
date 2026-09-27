@@ -3,6 +3,7 @@ import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuer
 import { normalizeAssignmentResources, validateAssignment, validatePost } from "./validation";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
+import { isEligibleCohortEmail } from "./auth-policy";
 const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
 const TASK_FIELDS = "assignment_id,created_by,subject_id,subject_name,academic_year,semester,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
 const SUBJECT_FIELDS = "subject_id,name,academic_year,semester,section_count";
@@ -33,7 +34,7 @@ export class SupabaseRepository implements Repository {
     const { data, error } = await this.client.auth.getUser();
     if (error) throw error;
     if (!data.user) return null;
-    if (!/^68[0-9]{6}@up\.ac\.th$/i.test(data.user.email ?? "")) { await this.signOut(); throw new AccessDeniedError("บัญชีนี้ไม่ใช่บัญชีนิสิตรหัส 68 @up.ac.th"); }
+    if (!isEligibleCohortEmail(data.user.email)) { await this.signOut(); throw new AccessDeniedError("ระบบนี้อนุญาตเฉพาะบัญชีนิสิตรหัส 6802xxxx@up.ac.th"); }
     const result = await this.client.from("users").select("uid,email,student_id,full_name,role,created_at,updated_at").eq("uid", data.user.id).single();
     if (result.error) throw new Error("ยังไม่พบข้อมูลผู้ใช้ กรุณาตรวจสอบการสร้างโปรไฟล์ในระบบ");
     return result.data as UserRow;
@@ -56,7 +57,7 @@ export class SupabaseRepository implements Repository {
   async signInWithPassword(username: string, password: string) {
     const value = username.trim().toLowerCase();
     const email = value.includes("@") ? value : value + "@up.ac.th";
-    if (!/^68[0-9]{6}@up\.ac\.th$/i.test(email)) throw new AccessDeniedError("กรุณาใช้ Username นิสิตรหัส 68 หรืออีเมล @up.ac.th");
+    if (!isEligibleCohortEmail(email)) throw new AccessDeniedError("กรุณาใช้รหัสนิสิต 6802xxxx หรืออีเมล 6802xxxx@up.ac.th");
     if (!password) throw new Error("กรุณากรอก Password");
     const { error } = await this.client.auth.signInWithPassword({ email, password });
     if (error) {

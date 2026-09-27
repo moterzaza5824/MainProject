@@ -38,18 +38,18 @@ Frontend หลัก, Supabase migrations/RLS/adapter และ Google OAuth �
 - ระบุผู้ที่มีสิทธิ์แต่งตั้ง/ถอดถอน admin และขั้นตอนเมื่อบัญชีถูกเพิกถอน
 - ผู้มีอำนาจตัดสินใจอนุมัตินโยบายก่อนนำข้อมูลจริงเข้าระบบ
 
-### BL-002 สร้าง allowlist นิสิต SE68
+### BL-002 จำกัดบัญชีด้วยรหัสนิสิต 6802
 
 **Epic:** Identity · **Story points:** 5 · **Dependency:** BL-001
 
-ในฐานะผู้ดูแล ฉันต้องอนุญาตเฉพาะนิสิต SE68 ที่ยืนยันแล้ว เพื่อไม่ให้ผู้ใช้อื่นที่มีอีเมลรหัส 68 ผ่านเข้าระบบด้วย regex เพียงอย่างเดียว
+ในฐานะผู้ดูแล ฉันต้องอนุญาตเฉพาะนิสิตที่มีรหัสขึ้นต้น 6802 เพื่อให้ตรงกับขอบเขตสาขาที่ตกลงไว้โดยไม่ต้องดูแล allowlist แยก
 
 **Acceptance criteria**
 
-- มีแหล่งข้อมูล allowlist ที่ผู้รับผิดชอบอัปเดตได้และมี unique student ID/email
-- การสร้าง profile ครั้งแรกตรวจทั้ง verified email และ allowlist ฝั่ง server
-- ผู้ที่ไม่อยู่ใน allowlist เห็นหน้า access denied และอ่าน/เขียนข้อมูลระบบไม่ได้
-- มีขั้นตอนเพิ่ม ถอน และตรวจสอบสมาชิก โดยบันทึกผู้ดำเนินการ
+- การสร้าง profile ครั้งแรกรับเฉพาะ verified email รูปแบบ `6802xxxx@up.ac.th`
+- frontend ตรวจรูปแบบเดียวกันและ sign out บัญชีที่ไม่ผ่านทันที
+- restrictive RLS ปิดการอ่าน/เขียนทุกตารางสำหรับบัญชีที่ไม่ผ่าน แม้เคยมี profile เก่า
+- constraint ป้องกัน profile ใหม่ที่มี email หรือ student ID นอกช่วง
 
 ### BL-003 ออกแบบภาคเรียน รายวิชา การลงทะเบียน และ Section
 
@@ -87,7 +87,7 @@ Frontend หลัก, Supabase migrations/RLS/adapter และ Google OAuth �
 **Acceptance criteria**
 
 - ตั้งค่า Google OAuth, Email provider และ redirect allowlist สำหรับ local/staging/production
-- ตรวจ verified email รูปแบบ `68xxxxxx@up.ac.th` และ allowlist ฝั่ง server; ค่า OAuth `hd` ไม่ถูกใช้เป็นสิทธิ์
+- ตรวจ verified email รูปแบบ `6802xxxx@up.ac.th` ที่ trigger, constraint และ RLS; ค่า OAuth `hd` ไม่ถูกใช้เป็นสิทธิ์
 - profile ใช้ `auth.users.id` เป็น `uid`, role เริ่มต้นเป็น student และ admin ตั้งได้ผ่านขั้นตอนที่เชื่อถือได้เท่านั้น
 - ผู้ใช้เปลี่ยน `uid`, email, student ID หรือ role จาก client ไม่ได้
 - session หมดอายุหรือบัญชีถูกถอนสิทธิ์แล้ว API ปฏิเสธคำขอและ UI พากลับสู่ flow ที่เหมาะสม
@@ -246,11 +246,11 @@ Frontend หลัก, Supabase migrations/RLS/adapter และ Google OAuth �
 
 แยกชื่อช่องทางส่งงานออกจาก URL, ตรวจ protocol/รูปแบบฝั่ง server และแสดงสถานะลิงก์เสียหรือเอกสารที่ต้องขอสิทธิ์โดยไม่ให้ระบบ crawler เข้าถึง URL ภายในโดยพลการ
 
-### BL-019 เพิ่มเครื่องมือจัดการ allowlist/enrollment สำหรับผู้ดูแล
+### BL-019 เพิ่มเครื่องมือจัดการสมาชิกและ enrollment สำหรับผู้ดูแล
 
 **Epic:** Admin experience · **Story points:** 8 · **Dependency:** BL-002, BL-003, BL-006
 
-ผู้ดูแลที่ได้รับสิทธิ์สามารถค้นหา นำเข้า ตรวจความผิดพลาด เพิ่ม/ถอนสมาชิก และเปลี่ยน enrollment แบบมี preview, validation และ audit trail
+ผู้ดูแลที่ได้รับสิทธิ์สามารถค้นหาสมาชิกในกลุ่มรหัส 6802 ตรวจความผิดพลาด ระงับการใช้งาน และเปลี่ยน enrollment แบบมี preview, validation และ audit trail
 
 ### BL-020 ทดสอบโหลดและกำหนด capacity baseline
 
@@ -276,12 +276,12 @@ Frontend หลัก, Supabase migrations/RLS/adapter และ Google OAuth �
 **เป้าหมาย:** ได้ข้อกำหนดที่อนุมัติแล้ว พร้อมฐานข้อมูลและระบบยืนยันตัวตนบน staging
 
 1. BL-001 ตกลงเจ้าของข้อมูลและนโยบายเก็บรักษา — 3 points
-2. BL-002 สร้าง allowlist นิสิต SE68 — 5 points
+2. BL-002 จำกัดบัญชีด้วยรหัสนิสิต 6802 — 5 points
 3. BL-003 ออกแบบภาคเรียน รายวิชา การลงทะเบียน และ Section — 8 points
 4. BL-004 ทำ Supabase migrations, constraints และ indexes ให้พร้อมใช้ — 8 points
 5. BL-005 เชื่อม Authentication และ provision profile อย่างปลอดภัย — 8 points
 
-**Sprint outcome:** ผู้ใช้ที่อยู่ใน allowlist เข้าสู่ระบบ staging ได้, profile/role ถูกสร้างอย่างปลอดภัย และฐานข้อมูลสร้างซ้ำจาก migration ได้
+**Sprint outcome:** ผู้ใช้รหัส 6802 เข้าสู่ระบบ staging ได้, บัญชีอื่นถูก RLS ปฏิเสธ, profile/role ถูกสร้างอย่างปลอดภัย และฐานข้อมูลสร้างซ้ำจาก migration ได้
 
 ### Sprint 2 — Security และเชื่อมข้อมูลจริง (34 points)
 

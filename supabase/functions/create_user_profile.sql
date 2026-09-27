@@ -9,8 +9,8 @@ declare
   normalized_email text := lower(coalesce(new.email, ''));
   display_name text;
 begin
-  if normalized_email !~ '^68[0-9]{6}@up\.ac\.th$' then
-    raise exception 'SE68 Hub accepts only 68xxxxxx@up.ac.th accounts';
+  if normalized_email !~ '^6802[0-9]{4}@up\.ac\.th$' then
+    raise exception 'SE68 Hub accepts only 6802xxxx@up.ac.th accounts';
   end if;
   display_name := coalesce(nullif(btrim(new.raw_user_meta_data ->> 'full_name'), ''), nullif(btrim(new.raw_user_meta_data ->> 'name'), ''), split_part(normalized_email, '@', 1));
   insert into public.users (uid, email, student_id, full_name, role)

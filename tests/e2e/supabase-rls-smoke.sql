@@ -3,11 +3,24 @@
 
 begin;
 
+do $$
+declare was_rejected boolean := false;
+begin
+  begin
+    insert into auth.users (id, email, raw_user_meta_data, created_at, updated_at)
+    values ('44444444-4444-4444-8444-444444444444', '68019999@up.ac.th', '{"full_name":"Outside Cohort"}', now(), now());
+  exception when others then
+    was_rejected := true;
+  end;
+  if not was_rejected then raise exception 'non-6802 account was accepted'; end if;
+end;
+$$;
+
 insert into auth.users (id, email, raw_user_meta_data, created_at, updated_at)
 values
-  ('11111111-1111-4111-8111-111111111111', '68999991@up.ac.th', '{"full_name":"RLS Student One"}', now(), now()),
-  ('22222222-2222-4222-8222-222222222222', '68999992@up.ac.th', '{"full_name":"RLS Student Two"}', now(), now()),
-  ('33333333-3333-4333-8333-333333333333', '68999993@up.ac.th', '{"full_name":"RLS Admin"}', now(), now());
+  ('11111111-1111-4111-8111-111111111111', '68029991@up.ac.th', '{"full_name":"RLS Student One"}', now(), now()),
+  ('22222222-2222-4222-8222-222222222222', '68029992@up.ac.th', '{"full_name":"RLS Student Two"}', now(), now()),
+  ('33333333-3333-4333-8333-333333333333', '68029993@up.ac.th', '{"full_name":"RLS Admin"}', now(), now());
 
 update public.users
 set role = 'admin'

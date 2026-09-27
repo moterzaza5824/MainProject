@@ -12,6 +12,7 @@ const policies = contents[migrationNames.indexOf("003_rls_policies.sql")];
 const resourcesMigration = contents[migrationNames.indexOf("005_assignment_resources_jsonb.sql")];
 const hardeningMigration = contents[migrationNames.indexOf("006_harden_backend_integrity.sql")];
 const integrityMigration = contents[migrationNames.indexOf("007_close_integrity_gaps.sql")];
+const cohortMigration = contents[migrationNames.indexOf("008_restrict_cohort_to_6802.sql")];
 const seed = contents.at(-1);
 
 for (const [index,sql] of contents.entries()) {
@@ -23,7 +24,9 @@ for (const table of ["users","subjects","enrollments","posts","assignments","use
   assert.match(policies,new RegExp(`alter table public\\.${table} enable row level security`,`i`),`RLS is not enabled for ${table}`);
 }
 assert.match(auth,/after insert on auth\.users/i,"missing auth.users profile trigger");
-assert.match(auth,/\^68\[0-9\]\{6\}@up\\\.ac\\\.th\$/i,"missing cohort email validation");
+assert.match(cohortMigration,/\^6802\[0-9\]\{4\}@up\\\.ac\\\.th\$/i,"missing 6802 cohort email validation");
+assert.match(cohortMigration,/as restrictive for all to authenticated/i,"missing restrictive cohort RLS gate");
+assert.match(cohortMigration,/private\.is_cohort_member\(\)/i,"missing cohort membership function");
 assert.match(policies,/create policy posts_select_visible/i,"missing post visibility policy");
 assert.match(policies,/create policy progress_select_own\b/i,"progress must remain private");
 assert.match(resourcesMigration,/rename column resources_jsonb to resources/i,"assignment resources must migrate to jsonb");

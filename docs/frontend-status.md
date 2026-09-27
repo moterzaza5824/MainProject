@@ -6,7 +6,7 @@
 
 | กลุ่ม | URL ภายใต้ /pages/ | การทำงาน |
 |---|---|---|
-| บัญชี | auth/login/, auth/access-denied/ | Username/Password, Google @up.ac.th, แจ้งสิทธิ์, เปลี่ยนบัญชี |
+| บัญชี | auth/login/, auth/access-denied/ | Username/Password, Google `6802xxxx@up.ac.th`, แจ้งสิทธิ์, เปลี่ยนบัญชี |
 | ภาพรวม | dashboard/, admin/dashboard/ | สรุปงาน/ประกาศ/คำขอ |
 | ประกาศ | posts/official/, posts/general/ | ข่าวที่เผยแพร่แล้ว กรองตามรายวิชาที่ลงทะเบียนและแบ่งหน้า |
 | คำขอของฉัน | posts/requests/ | คำขอประกาศทางการที่รออนุมัติ/ไม่อนุมัติ แยกจากหน้าข่าว |
@@ -25,7 +25,7 @@
 ## ตรวจสอบแล้ว
 
 - TypeScript strict และ production build
-- ทดสอบอัตโนมัติ 29 รายการ: สิทธิ์, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, optimistic concurrency, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment, master data, page render, sidebar preference
+- ทดสอบอัตโนมัติ 31 รายการ: สิทธิ์, กฎบัญชี `6802`, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, optimistic concurrency, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment, master data, page render, sidebar preference
 - DOM tests ใช้ happy-dom ไม่ใช่ภาพจริงหรือ E2E บน Chrome
 - ทดสอบ hidden/disabled ของฟอร์มด้วย DOM; การแสดงผล responsive/CSS ยังต้องตรวจบนอุปกรณ์จริงก่อน production
 - Supabase DB/RLS ที่ deploy จริงผ่าน migration sync, lint และ contract checks แล้ว; Google OAuth ทดสอบบน local/Vercel แล้ว แต่ยังไม่ได้ทดสอบหลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน
