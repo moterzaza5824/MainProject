@@ -179,9 +179,19 @@ export class SupabaseRepository implements Repository {
   async saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow> {
     validateAssignment(input); const user = await this.user(true);
     if(!input.subject_id||!input.academic_year||!input.semester)throw new Error("กรุณาเลือกรายวิชาจากข้อมูลพื้นฐาน");
-    const query = id ? this.client.from("assignments").update({ ...input, updated_at: new Date().toISOString() }).eq("assignment_id", id) : this.client.from("assignments").insert({ ...input, created_by: user.uid });
-    const { data, error } = await query.select(TASK_FIELDS).single();
+    let previousUpdatedAt: string | undefined;
+    if (id) {
+      const previous = await this.client.from("assignments").select("updated_at").eq("assignment_id", id).maybeSingle();
+      if (previous.error) throw previous.error;
+      if (!previous.data) throw new Error("ไม่พบงานนี้");
+      previousUpdatedAt = previous.data.updated_at as string;
+    }
+    const query = id
+      ? this.client.from("assignments").update({ ...input, updated_at: new Date().toISOString() }).eq("assignment_id", id).eq("updated_at", previousUpdatedAt!)
+      : this.client.from("assignments").insert({ ...input, created_by: user.uid });
+    const { data, error } = await query.select(TASK_FIELDS).maybeSingle();
     if (error) throw error;
+    if (!data) throw new Error("งานนี้มีการเปลี่ยนแปลงระหว่างบันทึก กรุณาโหลดข้อมูลล่าสุดแล้วลองอีกครั้ง");
     const row=data as AssignmentRow;
     return {...row,resources:normalizeAssignmentResources(row.resources)};
   }

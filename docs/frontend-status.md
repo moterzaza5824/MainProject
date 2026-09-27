@@ -28,11 +28,11 @@
 - ทดสอบอัตโนมัติ 28 รายการ: สิทธิ์, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment, master data, page render, sidebar preference
 - DOM tests ใช้ happy-dom ไม่ใช่ภาพจริงหรือ E2E บน Chrome
 - ทดสอบ hidden/disabled ของฟอร์มด้วย DOM; การแสดงผล responsive/CSS ยังต้องตรวจบนอุปกรณ์จริงก่อน production
-- Supabase DB/RLS ที่ deploy จริงผ่าน migration sync, lint และ contract checks แล้ว; ยังไม่ได้ทดสอบ OAuth, หลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน
+- Supabase DB/RLS ที่ deploy จริงผ่าน migration sync, lint และ contract checks แล้ว; Google OAuth ทดสอบบน local/Vercel แล้ว แต่ยังไม่ได้ทดสอบหลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน
 
 ## ข้อจำกัด
 
 - โหมดเริ่มต้นของ repository ยังรองรับ demo แต่เครื่องพัฒนานี้ตั้ง `.env.local` เป็น `VITE_DATA_MODE=supabase` แล้ว รายวิชา/การลงทะเบียน/ประกาศ/งาน/ความคืบหน้าจึงอ่านเขียนฐานข้อมูลจริง
-- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase development project แล้ว และ migration 001–004 ตรงกันทั้ง local/remote
+- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase project แล้ว และ migration 001–006 ตรงกันทั้ง local/remote
 - ไม่มี chat, grades, upload, SMS หรือฟีเจอร์ใหม่จากข้อเสนอแนะ
 - DONE ไม่นับเป็นงานด่วน; เลยกำหนดแยกจากงานที่จะถึงกำหนดใน 48 ชั่วโมง

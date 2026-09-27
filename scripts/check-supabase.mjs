@@ -1,15 +1,19 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 
-const files = [
-  "supabase/migrations/001_initial_schema.sql",
-  "supabase/migrations/002_auth_profiles.sql",
-  "supabase/migrations/003_rls_policies.sql",
-  "supabase/seed.sql"
-];
-const [schema, auth, policies, seed] = await Promise.all(files.map(file=>readFile(file,"utf8")));
+const migrationNames = (await readdir("supabase/migrations"))
+  .filter(name=>name.endsWith(".sql"))
+  .sort();
+const files = [...migrationNames.map(name=>`supabase/migrations/${name}`), "supabase/seed.sql"];
+const contents = await Promise.all(files.map(file=>readFile(file,"utf8")));
+const schema = contents[migrationNames.indexOf("001_initial_schema.sql")];
+const auth = contents[migrationNames.indexOf("002_auth_profiles.sql")];
+const policies = contents[migrationNames.indexOf("003_rls_policies.sql")];
+const resourcesMigration = contents[migrationNames.indexOf("005_assignment_resources_jsonb.sql")];
+const hardeningMigration = contents[migrationNames.indexOf("006_harden_backend_integrity.sql")];
+const seed = contents.at(-1);
 
-for (const [index,sql] of [schema,auth,policies,seed].entries()) {
+for (const [index,sql] of contents.entries()) {
   assert.ok(sql.trim().endsWith(";"), `${files[index]} must end with a semicolon`);
   assert.doesNotMatch(sql,/TODO:\s/i,`${files[index]} still contains a TODO placeholder`);
 }
@@ -21,6 +25,10 @@ assert.match(auth,/after insert on auth\.users/i,"missing auth.users profile tri
 assert.match(auth,/\^68\[0-9\]\{6\}@up\\\.ac\\\.th\$/i,"missing cohort email validation");
 assert.match(policies,/create policy posts_select_visible/i,"missing post visibility policy");
 assert.match(policies,/create policy progress_select_own\b/i,"progress must remain private");
+assert.match(resourcesMigration,/rename column resources_jsonb to resources/i,"assignment resources must migrate to jsonb");
+assert.match(resourcesMigration,/private\.valid_attachments\(resources\)/i,"assignment resources must validate named links");
+assert.match(hardeningMigration,/progress_insert_visible_assignment/i,"progress writes must require a visible assignment");
+assert.match(hardeningMigration,/new\.created_by\s*=\s*\(select auth\.uid\(\)\)/i,"database must own audit identities");
 assert.match(seed,/insert into public\.subjects/i,"missing reproducible subject seed");
 
 console.log("Supabase contract checks passed (schema, auth trigger, RLS, seed).");
