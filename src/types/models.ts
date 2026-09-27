@@ -43,6 +43,7 @@ export interface PostPage { rows: PostRow[]; total: number }
 export interface Repository {
   mode: "demo" | "supabase";
   currentUser(): Promise<UserRow | null>;
+  onAuthStateChange(callback: (signedIn: boolean) => void): () => void;
   signIn(role?: Role): Promise<void>;
   signInWithPassword(username: string, password: string): Promise<void>;
   signInWithGoogle(): Promise<void>;

@@ -21,6 +21,10 @@ async function bootstrap() {
     const route=(Object.keys(routes) as RouteName[]).find(name=>path===href(name))??"login";
     if(route==="denied"){renderAuth(root,repo,true);return;}
     const user=await repo.currentUser();
+    const stopAuthObserver=repo.onAuthStateChange(signedIn=>{
+      if(!signedIn&&route!=="login")location.replace(href("login"));
+    });
+    window.addEventListener("pagehide",stopAuthObserver,{once:true});
     if(route==="login"){
       if(user){location.replace(href("dashboard"));return;}
       renderAuth(root,repo);return;

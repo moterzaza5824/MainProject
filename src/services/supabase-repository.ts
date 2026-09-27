@@ -1,11 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-<<<<<<< HEAD
 import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, SubjectInput, TaskStatus, UserRow } from "../types/models";
-import { validateAssignment, validatePost } from "./repository";
-=======
-import type { AssignmentInput, AssignmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, TaskStatus, UserRow } from "../types/models";
 import { normalizeAssignmentResources, validateAssignment, validatePost } from "./repository";
->>>>>>> c419e98797793c11153ac4891b7423e0871686b3
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
 import { canViewPostForEnrollments } from "./enrollment";
@@ -16,9 +11,13 @@ const ENROLLMENT_FIELDS = "enrollment_id,uid,subject_id,academic_year,semester,s
 export class SupabaseRepository implements Repository {
   readonly mode = "supabase" as const;
   private client;
+  private readonly url: string;
+  private readonly key: string;
   constructor() {
     const url = import.meta.env.VITE_SUPABASE_URL, key = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (!url || !key || url.includes("your-project")) throw new Error("ยังไม่ได้ตั้งค่าการเชื่อมต่อ Supabase");
+    this.url = url.replace(/\/$/, "");
+    this.key = key;
     this.client = createClient(url, key);
   }
   async currentUser(): Promise<UserRow | null> {
@@ -32,6 +31,13 @@ export class SupabaseRepository implements Repository {
     const result = await this.client.from("users").select("uid,email,student_id,full_name,role,created_at,updated_at").eq("uid", data.user.id).single();
     if (result.error) throw new Error("ยังไม่พบข้อมูลผู้ใช้ กรุณาตรวจสอบการสร้างโปรไฟล์ในระบบ");
     return result.data as UserRow;
+  }
+  onAuthStateChange(callback: (signedIn: boolean) => void): () => void {
+    const { data } = this.client.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) callback(false);
+      else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") callback(true);
+    });
+    return () => data.subscription.unsubscribe();
   }
   private async user(admin = false) {
     const user = await this.currentUser();
@@ -47,10 +53,24 @@ export class SupabaseRepository implements Repository {
     if (!/^68[0-9]{6}@up\.ac\.th$/i.test(email)) throw new AccessDeniedError("กรุณาใช้ Username นิสิตรหัส 68 หรืออีเมล @up.ac.th");
     if (!password) throw new Error("กรุณากรอก Password");
     const { error } = await this.client.auth.signInWithPassword({ email, password });
-    if (error) throw new Error("Username หรือ Password ไม่ถูกต้อง");
+    if (error) {
+      if (error.code === "email_not_confirmed") throw new Error("กรุณายืนยันอีเมลมหาวิทยาลัยก่อนเข้าสู่ระบบ");
+      if (error.code === "over_request_rate_limit" || error.status === 429) throw new Error("ลองเข้าสู่ระบบหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่");
+      throw new Error("Username หรือ Password ไม่ถูกต้อง");
+    }
     await this.currentUser();
   }
   async signInWithGoogle() {
+    try {
+      const response = await fetch(`${this.url}/auth/v1/settings`, { headers: { apikey: this.key } });
+      if (response.ok) {
+        const settings = await response.json() as { external?: { google?: boolean } };
+        if (!settings.external?.google) throw new Error("Google Login ยังไม่เปิดใน Supabase กรุณาตั้งค่า Google OAuth ก่อนใช้งาน");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Google Login ยังไม่เปิด")) throw error;
+      // A transient settings request must not block the OAuth attempt itself.
+    }
     const { error } = await this.client.auth.signInWithOAuth({ provider: "google", options: { redirectTo: new URL(href("dashboard"), location.origin).href, queryParams: { hd: "up.ac.th" } } });
     if (error) throw error;
   }
@@ -145,18 +165,12 @@ export class SupabaseRepository implements Repository {
   }
   async saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow> {
     validateAssignment(input); const user = await this.user(true);
-<<<<<<< HEAD
     if(!input.subject_id||!input.academic_year||!input.semester)throw new Error("กรุณาเลือกรายวิชาจากข้อมูลพื้นฐาน");
-    const query = id ? this.client.from("assignments").update(input).eq("assignment_id", id) : this.client.from("assignments").insert({ ...input, created_by: user.uid });
-    const { data, error } = await query.select(TASK_FIELDS).single(); if (error) throw error; return data as AssignmentRow;
-=======
-    const {subject_id:_subjectId,academic_year:_academicYear,semester:_semester,...databaseInput}=input;
-    const query = id ? this.client.from("assignments").update({ ...databaseInput, updated_at: new Date().toISOString() }).eq("assignment_id", id) : this.client.from("assignments").insert({ ...databaseInput, created_by: user.uid });
+    const query = id ? this.client.from("assignments").update({ ...input, updated_at: new Date().toISOString() }).eq("assignment_id", id) : this.client.from("assignments").insert({ ...input, created_by: user.uid });
     const { data, error } = await query.select(TASK_FIELDS).single();
     if (error) throw error;
     const row=data as AssignmentRow;
     return {...row,resources:normalizeAssignmentResources(row.resources)};
->>>>>>> c419e98797793c11153ac4891b7423e0871686b3
   }
   async deleteAssignment(id: string) {
     await this.user(true); const { data, error } = await this.client.from("assignments").delete().eq("assignment_id", id).select("assignment_id");

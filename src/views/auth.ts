@@ -28,6 +28,13 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
 
   const error = root.querySelector<HTMLElement>("#auth-error");
   const showError = (value: unknown) => { if (error) error.textContent = value instanceof Error ? value.message : "เข้าสู่ระบบไม่สำเร็จ"; };
+  const callback = new URLSearchParams(location.search);
+  const hashCallback = new URLSearchParams(location.hash.replace(/^#/,""));
+  const oauthError = callback.get("error_description") ?? callback.get("error") ?? hashCallback.get("error_description") ?? hashCallback.get("error");
+  if (oauthError && error) {
+    error.textContent = oauthError === "access_denied" ? "ยกเลิกการเข้าสู่ระบบด้วย Google แล้ว" : oauthError;
+    history.replaceState(null,"",location.pathname);
+  }
   const form = root.querySelector<HTMLFormElement>("#login-form");
   if (form) form.onsubmit = event => {
     event.preventDefault();

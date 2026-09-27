@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import type { AssignmentInput, PostInput, PostQuery, Repository, Snapshot, Role, SubjectInput, TaskStatus, UserRow } from "../types/models";
-=======
-import type { AssignmentInput, Attachment, PostInput, PostQuery, Repository, Snapshot, Role, TaskStatus, UserRow } from "../types/models";
->>>>>>> c419e98797793c11153ac4891b7423e0871686b3
+import type { AssignmentInput, Attachment, PostInput, PostQuery, Repository, Snapshot, Role, SubjectInput, TaskStatus, UserRow } from "../types/models";
 import { createSeed } from "./seed";
 import { safeUrl } from "../utils/html";
 import { canViewPostForEnrollments, hasEnrollmentsForSubject, loadEnrollments, maxEnrollmentSectionForSubject, removeEnrollment, saveEnrollments } from "./enrollment";
@@ -76,6 +72,13 @@ export class DemoRepository implements Repository {
   async currentUser(): Promise<UserRow | null> {
     const uid = localStorage.getItem(SESSION);
     return uid ? this.read().users.find(u => u.uid === uid) ?? null : null;
+  }
+  onAuthStateChange(callback: (signedIn: boolean) => void): () => void {
+    const listener = (event: StorageEvent) => {
+      if (event.key === SESSION) callback(!!event.newValue);
+    };
+    window.addEventListener("storage", listener);
+    return () => window.removeEventListener("storage", listener);
   }
   private async user(admin = false): Promise<UserRow> {
     const user = await this.currentUser();

@@ -7,6 +7,7 @@ const page = (path: string) => resolve(projectDirectory, "src/pages", path, "ind
 
 export default defineConfig({
   root: "src",
+  envDir: projectDirectory,
   publicDir: "../public",
   build: {
     outDir: "../dist",

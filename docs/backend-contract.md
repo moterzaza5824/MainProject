@@ -1,6 +1,6 @@
 # สัญญาเชื่อม Backend / Database
 
-สัญญานี้ถูกนำไปสร้างเป็น migrations แล้วใน `supabase/migrations/` แต่ยังต้อง deploy และทดสอบกับ Supabase project จริง
+สัญญานี้ถูกนำไปสร้างเป็น migrations ใน `supabase/migrations/` และ deploy พร้อม seed ไปยัง Supabase development project แล้ว โดยผ่าน `db lint` และ contract checks; Google OAuth และการทดสอบหลายบัญชีจริงยังต้องตั้งค่า/ดำเนินการก่อน production
 
 ## เปิดโหมดจริงเมื่อ backend พร้อม
 
@@ -79,7 +79,7 @@ review ใช้ conditional update เฉพาะ pending; savePost มี upd
 
 ## ยังต้องทำก่อน Production
 
-- deploy migrations/seed และตั้ง Google OAuth/redirects ใน Supabase project จริง
+- ตั้ง Google OAuth/redirects ใน Supabase project จริง (migrations/seed deploy แล้ว)
 - Realtime/subscriptions และสิทธิ์เมื่อ session/role เปลี่ยน; ปัจจุบันโหลดเมื่อเข้าหน้าและหลัง mutation ของตนเอง
 - ทดสอบกับ 2 students + 1 admin: อ่าน note คนอื่น, เปลี่ยน role, เผยแพร่ official เอง, อ่าน pending คนอื่น, เขียนพร้อมกัน
 - ตรวจ network errors, duplicate writes, backup และ production logging
