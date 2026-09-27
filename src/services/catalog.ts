@@ -1,21 +1,11 @@
-import type { AcademicSemester, AssignmentRow, PostRow } from "../types/models";
+import type { AcademicSemester, AssignmentRow, MasterCatalog, PostRow, SubjectCatalogRow } from "../types/models";
+export type { MasterCatalog, SubjectCatalogRow } from "../types/models";
 
 const STORE = "se68-master-data-v1";
 
-export interface SubjectCatalogRow {
-  id: string;
-  name: string;
-  academicYear: number;
-  semester: AcademicSemester;
-  sectionCount: number;
-}
 export interface ChannelCatalogRow {
   id: string;
   name: string;
-}
-export interface MasterCatalog {
-  subjects: SubjectCatalogRow[];
-  channels: ChannelCatalogRow[];
 }
 
 const normalize = (value:string) => value.trim().replace(/\s+/g," ");

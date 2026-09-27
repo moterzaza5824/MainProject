@@ -1,1 +1,2 @@
--- TODO: เปิด RLS และกำหนดสิทธิ์ Student/Admin ทุกตาราง
+-- Canonical deployable policies live in migrations/003_rls_policies.sql.
+-- This file is intentionally kept as a pointer so policies have one source of truth.

@@ -1,11 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
-import type { AssignmentInput, AssignmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, TaskStatus, UserRow } from "../types/models";
+import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, SubjectInput, TaskStatus, UserRow } from "../types/models";
 import { validateAssignment, validatePost } from "./repository";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
 import { canViewPostForEnrollments } from "./enrollment";
 const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
-const TASK_FIELDS = "assignment_id,created_by,subject_name,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
+const TASK_FIELDS = "assignment_id,created_by,subject_id,subject_name,academic_year,semester,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
+const SUBJECT_FIELDS = "subject_id,name,academic_year,semester,section_count";
+const ENROLLMENT_FIELDS = "enrollment_id,uid,subject_id,academic_year,semester,section,created_at,updated_at";
 export class SupabaseRepository implements Repository {
   readonly mode = "supabase" as const;
   private client;
@@ -137,13 +139,45 @@ export class SupabaseRepository implements Repository {
   }
   async saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow> {
     validateAssignment(input); const user = await this.user(true);
-    const {subject_id:_subjectId,academic_year:_academicYear,semester:_semester,...databaseInput}=input;
-    const query = id ? this.client.from("assignments").update({ ...databaseInput, updated_at: new Date().toISOString() }).eq("assignment_id", id) : this.client.from("assignments").insert({ ...databaseInput, created_by: user.uid });
+    if(!input.subject_id||!input.academic_year||!input.semester)throw new Error("กรุณาเลือกรายวิชาจากข้อมูลพื้นฐาน");
+    const query = id ? this.client.from("assignments").update(input).eq("assignment_id", id) : this.client.from("assignments").insert({ ...input, created_by: user.uid });
     const { data, error } = await query.select(TASK_FIELDS).single(); if (error) throw error; return data as AssignmentRow;
   }
   async deleteAssignment(id: string) {
     await this.user(true); const { data, error } = await this.client.from("assignments").delete().eq("assignment_id", id).select("assignment_id");
     if (error) throw error; if (!data?.length) throw new Error("ไม่พบงานนี้");
+  }
+  async getSubjects() {
+    await this.user();
+    const {data,error}=await this.client.from("subjects").select(SUBJECT_FIELDS).order("academic_year",{ascending:false}).order("semester").order("name");
+    if(error)throw error;
+    return (data??[]).map(row=>({id:row.subject_id as string,name:row.name as string,academicYear:row.academic_year as number,semester:row.semester as "1"|"2",sectionCount:row.section_count as number}));
+  }
+  async saveSubject(input: SubjectInput,id?:string) {
+    const user=await this.user(true),payload={name:input.name.trim(),academic_year:input.academicYear,semester:input.semester,section_count:input.sectionCount};
+    const query=id?this.client.from("subjects").update(payload).eq("subject_id",id):this.client.from("subjects").insert({...payload,created_by:user.uid});
+    const {data,error}=await query.select(SUBJECT_FIELDS).single();if(error)throw error;
+    return {id:data.subject_id as string,name:data.name as string,academicYear:data.academic_year as number,semester:data.semester as "1"|"2",sectionCount:data.section_count as number};
+  }
+  async deleteSubject(id:string) {
+    await this.user(true);const {data,error}=await this.client.from("subjects").delete().eq("subject_id",id).select("subject_id");
+    if(error)throw error;if(!data?.length)throw new Error("ไม่พบรายวิชาหรือรายวิชากำลังถูกใช้งาน");
+  }
+  async getEnrollments() {
+    const user=await this.user();const {data,error}=await this.client.from("enrollments").select(ENROLLMENT_FIELDS).eq("uid",user.uid).order("created_at");
+    if(error)throw error;return (data??[]) as EnrollmentRow[];
+  }
+  async saveEnrollments(selections:{subject_id:string;section:number}[]) {
+    const user=await this.user();
+    if(!selections.length)throw new Error("ไม่มีรายวิชาให้บันทึก");
+    if(new Set(selections.map(row=>row.subject_id)).size!==selections.length)throw new Error("พบรายวิชาซ้ำ กรุณาลองใหม่");
+    if(selections.some(row=>!Number.isInteger(row.section)||row.section<1))throw new Error("กรุณาเลือก Sec ให้ถูกต้อง");
+    const payload=selections.map(row=>({uid:user.uid,subject_id:row.subject_id,section:row.section}));
+    const {error}=await this.client.from("enrollments").upsert(payload,{onConflict:"uid,subject_id"});if(error)throw error;
+    return this.getEnrollments();
+  }
+  async removeEnrollment(subjectId:string) {
+    const user=await this.user();const {error}=await this.client.from("enrollments").delete().eq("uid",user.uid).eq("subject_id",subjectId);if(error)throw error;
   }
   async updateSubjectReferences(subjectId:string,oldName:string,name:string,_academicYear:number,_semester:import("../types/models").AcademicSemester) {
     await this.user(true);

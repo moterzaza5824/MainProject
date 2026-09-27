@@ -17,7 +17,7 @@ function errorIn(form:HTMLFormElement,error:unknown){
 export function renderPostForm(ctx:Context){
   const id=new URLSearchParams(location.search).get("id")??undefined, post=ctx.data.posts.find(p=>p.post_id===id);
   if(id&&(!post||(post.author_id!==ctx.user.uid&&ctx.user.role!=="admin"))){ctx.root.innerHTML=empty("ไม่สามารถแก้ไขประกาศ","ไม่พบประกาศหรือคุณไม่มีสิทธิ์");return;}
-  const catalog=loadCatalog(ctx.data.assignments);
+  const catalog=ctx.catalog??loadCatalog(ctx.data.assignments);
   const availableSubjects=ctx.user.role==="student"&&ctx.enrollments?catalog.subjects.filter(row=>ctx.enrollments!.some(enrollment=>enrollment.subject_id===row.id)):catalog.subjects;
   const matchedSubject=availableSubjects.find(row=>row.id===post?.subject_id)||availableSubjects.find(row=>row.name===post?.subject_name);
   const selectedSubject=matchedSubject?.id??(post?.subject_name?"legacy-subject":"");
@@ -78,7 +78,7 @@ export function renderPostForm(ctx:Context){
 export function renderAssignmentForm(ctx:Context){
   const id=new URLSearchParams(location.search).get("id")??undefined,task=ctx.data.assignments.find(a=>a.assignment_id===id);
   if(id&&!task){ctx.root.innerHTML=empty("ไม่พบงานนี้","กลับไปหน้าจัดการงานเพื่อเลือกรายการอีกครั้ง");return;}
-  const catalog=loadCatalog(ctx.data.assignments);
+  const catalog=ctx.catalog??loadCatalog(ctx.data.assignments);
   const matchedSubject=catalog.subjects.find(row=>row.id===task?.subject_id)??catalog.subjects.find(row=>row.name===task?.subject_name&&(!task?.academic_year||row.academicYear===task.academic_year)&&(!task?.semester||row.semester===task.semester));
   const selectedSubject=matchedSubject?.id??(task?"legacy-subject":"");
   const initialUnifiedDue=matchedSubject?.sectionCount===1?(task?.due_dates.all??task?.due_dates.sec_1):task?.due_dates.all;

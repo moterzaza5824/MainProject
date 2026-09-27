@@ -28,12 +28,11 @@
 - ทดสอบอัตโนมัติ 27 รายการ: สิทธิ์, migration สถานะ, private progress/upsert, moderation, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment, master data, page render, sidebar preference
 - DOM tests ใช้ happy-dom ไม่ใช่ภาพจริงหรือ E2E บน Chrome
 - ทดสอบ hidden/disabled ของฟอร์มด้วย DOM; การแสดงผล responsive/CSS ยังต้องตรวจบนอุปกรณ์จริงก่อน production
-- ยังไม่ทดสอบ OAuth, Supabase DB/RLS, หลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน
+- ยังไม่ทดสอบ OAuth, Supabase DB/RLS ที่ deploy จริง, หลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน
 
 ## ข้อจำกัด
 
-- เป็น frontend demo; ข้อมูลอยู่เฉพาะเบราว์เซอร์ ไม่ใช่ production
-- รายวิชาและการลงทะเบียนยังเก็บใน localStorage ต้องย้ายเข้า backend ก่อนใช้งานหลายคนจริง ส่วนช่องทางส่งงานกรอกเป็นข้อความในงานแต่ละรายการ
-- SQL ใน supabase/ ยังเป็น placeholder; ใส่ URL/key อย่างเดียวไม่ทำให้ backend พร้อม
+- โหมดเริ่มต้นยังเป็น demo และเก็บข้อมูลใน browser; เมื่อใช้ `VITE_DATA_MODE=supabase` รายวิชา/การลงทะเบียน/ประกาศ/งาน/ความคืบหน้าจะอ่านเขียนฐานข้อมูลจริง
+- migrations, trigger, seed และ RLS ถูกสร้างแล้ว แต่ต้อง deploy และทดสอบกับ Supabase project จริงตาม `docs/backend-setup.md`
 - ไม่มี chat, grades, upload, SMS หรือฟีเจอร์ใหม่จากข้อเสนอแนะ
 - DONE ไม่นับเป็นงานด่วน; เลยกำหนดแยกจากงานที่จะถึงกำหนดใน 48 ชั่วโมง

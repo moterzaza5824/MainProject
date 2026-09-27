@@ -27,6 +27,11 @@ export interface EnrollmentRow {
   enrollment_id: string; uid: string; subject_id: string; academic_year: number;
   semester: AcademicSemester; section: number; created_at: string; updated_at: string;
 }
+export interface SubjectCatalogRow {
+  id: string; name: string; academicYear: number; semester: AcademicSemester; sectionCount: number;
+}
+export interface MasterCatalog { subjects: SubjectCatalogRow[]; channels: { id: string; name: string }[] }
+export interface SubjectInput { name: string; academicYear: number; semester: AcademicSemester; sectionCount: number }
 export interface ProgressRow {
   id: string; uid: string; assignment_id: string; status: TaskStatus; note?: string; updated_at: string;
 }
@@ -52,6 +57,12 @@ export interface Repository {
   deletePost(id: string): Promise<void>;
   saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow>;
   deleteAssignment(id: string): Promise<void>;
+  getSubjects(): Promise<SubjectCatalogRow[]>;
+  saveSubject(input: SubjectInput, id?: string): Promise<SubjectCatalogRow>;
+  deleteSubject(id: string): Promise<void>;
+  getEnrollments(): Promise<EnrollmentRow[]>;
+  saveEnrollments(selections: { subject_id: string; section: number }[]): Promise<EnrollmentRow[]>;
+  removeEnrollment(subjectId: string): Promise<void>;
   updateSubjectReferences(subjectId: string, oldName: string, name: string, academicYear: number, semester: AcademicSemester): Promise<void>;
   updateChannelReferences(oldName: string, name: string): Promise<void>;
   saveProgress(id: string, status: TaskStatus, note: string): Promise<void>;

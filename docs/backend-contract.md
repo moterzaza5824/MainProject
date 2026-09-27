@@ -1,6 +1,6 @@
 # สัญญาเชื่อม Backend / Database
 
-นี่คือ checklist ขั้นถัดไป ไม่ได้สร้างตารางหรือ deploy policies แล้ว
+สัญญานี้ถูกนำไปสร้างเป็น migrations แล้วใน `supabase/migrations/` แต่ยังต้อง deploy และทดสอบกับ Supabase project จริง
 
 ## เปิดโหมดจริงเมื่อ backend พร้อม
 
@@ -21,8 +21,10 @@ VITE_* จะอยู่ใน JavaScript ฝั่งผู้ใช้ ใส
 | ตาราง | fields | constraint/default |
 |---|---|---|
 | users | uid, email, student_id, full_name, role, created_at, updated_at | uid UUID = auth.users.id; student/admin; unique email |
+| subjects | subject_id, name, academic_year, semester, section_count, created_by, created_at, updated_at | UUID PK; ชื่อไม่ซ้ำในปี/ภาคเรียนเดียวกัน |
+| enrollments | enrollment_id, uid, subject_id, academic_year, semester, section, created_at, updated_at | หนึ่ง Sec ต่อ user/subject; section ต้องอยู่ในช่วงของวิชา |
 | posts | post_id, author_id, author_name, title, content, category, status, is_pinned, image_url, subject_id, subject_name, target_scope, target_sections, attachments, approved_by, created_at, updated_at | UUID PK; author/reviewer FK users; official/general; published/pending/rejected |
-| assignments | assignment_id, created_by, subject_name, title, description, submission_channel, schedule_mode, due_dates, resources, created_at, updated_at | UUID PK; creator FK; UNIFIED/SPLIT |
+| assignments | assignment_id, created_by, subject_id, subject_name, academic_year, semester, title, description, submission_channel, schedule_mode, due_dates, resources, created_at, updated_at | UUID PK; creator/subject FK; UNIFIED/SPLIT |
 | user_task_progress | id, uid, assignment_id, status, note, updated_at | id text uid_assignmentId; UNIQUE(uid,assignment_id); FK; TODO/DONE |
 
 - post_id/assignment_id default gen_random_uuid(); timestamps เป็น timestamptz default now(); server ควรเป็นผู้กำหนด updated_at
@@ -69,10 +71,15 @@ review ใช้ conditional update เฉพาะ pending; savePost มี upd
 
 ต้องมี rate limit ฝั่ง server (demo จำกัดสร้าง 3 ครั้ง/นาที) และ validate links/content ซ้ำ Client guards ไม่ใช่มาตรการรักษาความปลอดภัย
 
-## ยังต้องทำ
+## ทำแล้วใน repository
 
-- migrations, indexes, triggers, public_profiles, RLS, rate limits
-- Google OAuth/redirects และ profile provisioning
+- migrations, indexes, validation triggers, `public_profiles`, RLS และ rate limit การสร้างประกาศ
+- profile provisioning และการจำกัดบัญชี `68xxxxxx@up.ac.th`
+- adapter สำหรับ subjects/enrollments รวมถึง posts/assignments/progress
+
+## ยังต้องทำก่อน Production
+
+- deploy migrations/seed และตั้ง Google OAuth/redirects ใน Supabase project จริง
 - Realtime/subscriptions และสิทธิ์เมื่อ session/role เปลี่ยน; ปัจจุบันโหลดเมื่อเข้าหน้าและหลัง mutation ของตนเอง
 - ทดสอบกับ 2 students + 1 admin: อ่าน note คนอื่น, เปลี่ยน role, เผยแพร่ official เอง, อ่าน pending คนอื่น, เขียนพร้อมกัน
 - ตรวจ network errors, duplicate writes, backup และ production logging

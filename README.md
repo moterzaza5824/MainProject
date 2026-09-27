@@ -37,6 +37,8 @@ npm run preview
 - [โครงสร้างและหน้าที่แต่ละส่วน](docs/architecture.md)
 - [สถานะ Frontend และหน้าที่พร้อมทดลอง](docs/frontend-status.md)
 - [สัญญาข้อมูลและรายการเชื่อม Backend](docs/backend-contract.md)
+- [วิธีตั้งค่า Supabase, Auth และฐานข้อมูล](docs/backend-setup.md)
 - [ข้อเสนอเพิ่มเติมที่ยังไม่ได้ลงมือทำ](docs/recommendations.md)
+- [Product Backlog และลำดับส่งมอบ](docs/backlog.md)
 
-Google OAuth, ฐานข้อมูลจริง, RLS และ Realtime **ยังไม่เปิดใช้งานและยังไม่ได้ทดสอบกับระบบจริง** มี Supabase adapter เตรียมไว้เท่านั้น ต้องทำ checklist ใน backend-contract ให้ครบก่อนเปิด production ห้ามใส่ service-role key ใน VITE_* หรือ Git
+Schema, profile trigger, RLS, seed และ Supabase adapter ถูกเตรียมพร้อมสำหรับ deploy แล้ว แต่ **ยังไม่ได้ deploy/ทดสอบกับ Supabase project จริงใน repository นี้** และ Realtime ยังไม่เปิดใช้ ดูขั้นตอนใน `docs/backend-setup.md` และห้ามใส่ service-role key ใน `VITE_*` หรือ Git

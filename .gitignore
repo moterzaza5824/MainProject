@@ -10,3 +10,5 @@ dist/
 .vscode/settings.json
 
 .vercel
+supabase/.temp/
+supabase/.branches/

@@ -1,7 +1,8 @@
-import type { AssignmentInput, PostInput, PostQuery, Repository, Snapshot, Role, TaskStatus, UserRow } from "../types/models";
+import type { AssignmentInput, PostInput, PostQuery, Repository, Snapshot, Role, SubjectInput, TaskStatus, UserRow } from "../types/models";
 import { createSeed } from "./seed";
 import { safeUrl } from "../utils/html";
-import { canViewPostForEnrollments } from "./enrollment";
+import { canViewPostForEnrollments, hasEnrollmentsForSubject, loadEnrollments, maxEnrollmentSectionForSubject, removeEnrollment, saveEnrollments } from "./enrollment";
+import { addSubject, deleteSubject, loadCatalog, updateSubject } from "./catalog";
 
 const STORE = "se68-demo-data-v1", SESSION = "se68-demo-user-v1";
 export function validatePost(input: PostInput): void {
@@ -137,6 +138,28 @@ export class DemoRepository implements Repository {
     data.progress = data.progress.filter(p => p.assignment_id !== id);
     this.write(data);
   }
+  async getSubjects() { await this.user(); return loadCatalog(this.read().assignments).subjects; }
+  async saveSubject(input: SubjectInput, id?: string) {
+    await this.user(true); const data=this.read();
+    const catalog=id
+      ? updateSubject(data.assignments,data.posts,id,input,maxEnrollmentSectionForSubject(id))
+      : addSubject(data.assignments,input);
+    return id ? catalog.subjects.find(row=>row.id===id)! : catalog.subjects[0];
+  }
+  async deleteSubject(id: string) {
+    await this.user(true); const data=this.read();
+    deleteSubject(data.assignments,data.posts,id,hasEnrollmentsForSubject(id));
+  }
+  async getEnrollments() { const user=await this.user(); return loadEnrollments(user.uid); }
+  async saveEnrollments(selections:{subject_id:string;section:number}[]) {
+    const user=await this.user(),subjects=await this.getSubjects();
+    return saveEnrollments(user.uid,selections.map(selection=>{
+      const subject=subjects.find(row=>row.id===selection.subject_id);
+      if(!subject)throw new Error("ไม่พบรายวิชาที่เลือก");
+      return {subject,section:selection.section};
+    }));
+  }
+  async removeEnrollment(subjectId:string) { const user=await this.user(); removeEnrollment(user.uid,subjectId); }
   async updateSubjectReferences(subjectId:string,oldName:string,name:string,academicYear:number,semester:import("../types/models").AcademicSemester):Promise<void> {
     await this.user(true);const data=this.read(),updatedAt=new Date().toISOString();
     data.assignments=data.assignments.map(row=>row.subject_id===subjectId||(!row.subject_id&&row.subject_name===oldName)?{...row,subject_id:subjectId,subject_name:name,academic_year:academicYear,semester,updated_at:updatedAt}:row);

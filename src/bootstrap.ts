@@ -11,8 +11,7 @@ import { renderPostDetail, renderPosts } from "./views/posts";
 import { renderAssignmentForm, renderPostForm } from "./views/forms";
 import { renderCatalog } from "./views/catalog";
 import { renderEnrollment } from "./views/enrollment";
-import { loadCatalog } from "./services/catalog";
-import { applyStudentVisibility, canViewPostForEnrollments, loadEnrollments } from "./services/enrollment";
+import { applyStudentVisibility, canViewPostForEnrollments } from "./services/enrollment";
 async function bootstrap() {
   const root=document.querySelector<HTMLElement>("#app")!;
   root.innerHTML='<div class="loading" role="status">กำลังเตรียมพื้นที่ของคุณ…</div>';
@@ -33,13 +32,14 @@ async function bootstrap() {
     let active=route==="assignmentDetail"?"assignments":route==="postDetail"||route==="postForm"||route==="general"?"official":route==="adminPostForm"?"adminPosts":route==="assignmentForm"?"adminAssignments":route;
     const content=mountShell(user,active,repo);
     try {
-      const enrollments=user.role==="student"?loadEnrollments(user.uid):undefined;
+      let catalog={subjects:await repo.getSubjects(),channels:[]};
+      let enrollments=user.role==="student"?await repo.getEnrollments():undefined;
       const loadData=async()=>{
         const raw=await repo.snapshot();
         if(user.role!=="student"||!enrollments)return raw;
         const feed=await repo.listPosts({status:"published",pageSize:15,enrollments});
         raw.posts=[...new Map([...raw.posts,...feed.rows].map(post=>[post.post_id,post])).values()];
-        return applyStudentVisibility(raw,user,enrollments,loadCatalog(raw.assignments));
+        return applyStudentVisibility(raw,user,enrollments,catalog);
       };
       let data=await loadData();
       const postId = new URLSearchParams(location.search).get("id");
@@ -55,7 +55,11 @@ async function bootstrap() {
           if(link.getAttribute("href")===href(active))link.setAttribute("aria-current","page");else link.removeAttribute("aria-current");
         });
       }
-      const ctx:Context={root:content,repo,user,data,enrollments,reviewerName,async refresh(){ctx.data=await loadData();}};
+      const ctx:Context={root:content,repo,user,data,catalog,enrollments,reviewerName,async refresh(){
+        catalog={subjects:await repo.getSubjects(),channels:[]};
+        enrollments=user.role==="student"?await repo.getEnrollments():undefined;
+        ctx.catalog=catalog;ctx.enrollments=enrollments;ctx.data=await loadData();
+      }};
       switch(route){
         case "dashboard":renderDashboard(ctx);break;
         case "admin":renderDashboard(ctx,true);break;
