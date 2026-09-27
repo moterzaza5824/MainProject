@@ -94,13 +94,15 @@ test("official approval, stale review, and student re-edit obey moderation lifec
   const post=await repo.savePost(postInput("official"));
   assert.equal(post.status,"pending");
   await repo.signIn("admin");
-  await repo.savePost({...post,title:"ผู้ดูแลแก้คำผิด"},post.post_id);
+  await repo.savePost({...post,title:"ผู้ดูแลแก้คำผิด"},post.post_id,post.updated_at);
   assert.equal((await repo.getPost(post.post_id))!.status,"pending");
   await repo.reviewPost(post.post_id,"approve");
   await assert.rejects(repo.reviewPost(post.post_id,"reject"));
-  assert.equal((await repo.getPost(post.post_id))!.status,"published");
+  const approved=(await repo.getPost(post.post_id))!;
+  assert.equal(approved.status,"published");
   await repo.signIn("student");
-  const changed=await repo.savePost({...post,title:"เพิ่มรายละเอียด"},post.post_id);
+  await assert.rejects(repo.savePost({...post,title:"ข้อมูลเก่า"},post.post_id,"2000-01-01T00:00:00.000Z"),/โหลดข้อมูลล่าสุด/);
+  const changed=await repo.savePost({...post,title:"เพิ่มรายละเอียด"},post.post_id,approved.updated_at);
   assert.equal(changed.status,"pending"); assert.equal(changed.approved_by,null);
 });
 
@@ -110,7 +112,7 @@ test("General author edits preserve admin pin and reviewer; other pending posts 
   await repo.signIn("admin"); await repo.reviewPost(p.post_id,"general"); await repo.pinPost(p.post_id,true);
   const moderated=(await repo.getPost(p.post_id))!;
   await repo.signIn("student");
-  const edited=await repo.savePost({...moderated,title:"แก้คำผิด",is_pinned:false},p.post_id);
+  const edited=await repo.savePost({...moderated,title:"แก้คำผิด",is_pinned:false},p.post_id,moderated.updated_at);
   assert.equal(edited.is_pinned,true); assert.equal(edited.approved_by,moderated.approved_by);
   const raw=JSON.parse(localStorage.getItem("se68-demo-data-v1")!);
   raw.posts.push({...p,post_id:"someone-pending",author_id:"another-student"});
@@ -127,6 +129,14 @@ test("reject and downgrade are separate outcomes; deleting a task cascades its p
   await repo.deleteAssignment(a.assignment_id);
   assert.equal((await repo.snapshot()).progress.some(p=>p.assignment_id===a.assignment_id),false);
   await assert.rejects(repo.saveProgress(a.assignment_id,"DONE",""));
+});
+
+test("assignment edits reject a stale version instead of overwriting newer data", async () => {
+  await context("admin");
+  const assignment=await repo.saveAssignment(taskInput());
+  await assert.rejects(repo.saveAssignment({...assignment,title:"ข้อมูลเก่า"},assignment.assignment_id,"2000-01-01T00:00:00.000Z"),/โหลดข้อมูลล่าสุด/);
+  const updated=await repo.saveAssignment({...assignment,title:"ข้อมูลใหม่"},assignment.assignment_id,assignment.updated_at);
+  assert.equal(updated.title,"ข้อมูลใหม่");
 });
 
 test("section and 48-hour urgency logic handles ALL, optional split section, and DONE", () => {

@@ -3,7 +3,6 @@ import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuer
 import { normalizeAssignmentResources, validateAssignment, validatePost } from "./repository";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
-import { canViewPostForEnrollments } from "./enrollment";
 const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
 const TASK_FIELDS = "assignment_id,created_by,subject_id,subject_name,academic_year,semester,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
 const SUBJECT_FIELDS = "subject_id,name,academic_year,semester,section_count";
@@ -138,25 +137,22 @@ export class SupabaseRepository implements Repository {
     if (options.own) query = query.eq("author_id", user.uid);
     if (options.processed) query = query.or("approved_by.not.is.null,status.eq.rejected");
     if (options.section && options.section !== "ALL") query = query.or("target_scope.eq.ALL,target_sections.cs.{" + options.section + "}");
-    if (options.enrollments) {
-      const { data, error } = await query.order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }).order("post_id").limit(1000);
-      if (error) throw error;
-      const visible=(data as PostRow[]).filter(post=>canViewPostForEnrollments(post,options.enrollments!,user.uid));
-      return {rows:visible.slice((page-1)*size,page*size),total:visible.length};
-    }
+    // Supabase RLS already filters official posts by the current user's
+    // enrollments. Keeping pagination on the server avoids a 1,000-row cap.
     const { data, count, error } = await query.order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }).order("post_id").range((page-1)*size, page*size-1);
     if (error) throw error;
     return { rows: data as PostRow[], total: count ?? 0 };
   }
-  async savePost(input: PostInput, id?: string): Promise<PostRow> {
+  async savePost(input: PostInput, id?: string, expectedUpdatedAt?: string): Promise<PostRow> {
     validatePost(input); const user = await this.user();
     const old = id ? await this.getPost(id) : null;
     if (id && !old) throw new Error("ไม่พบประกาศนี้");
+    if (old && (!expectedUpdatedAt || old.updated_at !== expectedUpdatedAt)) throw new Error("ประกาศมีการเปลี่ยนแปลงระหว่างที่คุณกำลังแก้ไข กรุณาโหลดข้อมูลล่าสุด");
     if (old && old.author_id !== user.uid && user.role !== "admin") throw new Error("แก้ไขได้เฉพาะประกาศของตนเอง");
     const payload = { ...input, status: input.category === "official" && user.role !== "admin" ? "pending" : old && old.category === input.category ? old.status : "published",
       is_pinned: user.role === "admin" ? input.is_pinned : input.category === "general" && old?.category === "general" ? old.is_pinned : false,
       approved_by: old && old.category === input.category && (user.role === "admin" || input.category === "general") ? old.approved_by : input.category === "official" && user.role === "admin" ? user.uid : null, updated_at: new Date().toISOString() };
-    const query = id ? this.client.from("posts").update(payload).eq("post_id", id).eq("updated_at", old!.updated_at) : this.client.from("posts").insert({ ...payload, author_id: user.uid, author_name: user.full_name });
+    const query = id ? this.client.from("posts").update(payload).eq("post_id", id).eq("updated_at", expectedUpdatedAt!) : this.client.from("posts").insert({ ...payload, author_id: user.uid, author_name: user.full_name });
     const { data, error } = await query.select(POST_FIELDS).maybeSingle();
     if (error) throw error;
     if (!data) throw new Error("ประกาศมีการเปลี่ยนแปลงระหว่างบันทึก กรุณาโหลดข้อมูลล่าสุดก่อนแก้ไขอีกครั้ง");
@@ -176,18 +172,17 @@ export class SupabaseRepository implements Repository {
     await this.user(); const { data, error } = await this.client.from("posts").delete().eq("post_id", id).select("post_id");
     if (error) throw error; if (!data?.length) throw new Error("ไม่มีสิทธิ์หรือไม่พบประกาศนี้");
   }
-  async saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow> {
+  async saveAssignment(input: AssignmentInput, id?: string, expectedUpdatedAt?: string): Promise<AssignmentRow> {
     validateAssignment(input); const user = await this.user(true);
     if(!input.subject_id||!input.academic_year||!input.semester)throw new Error("กรุณาเลือกรายวิชาจากข้อมูลพื้นฐาน");
-    let previousUpdatedAt: string | undefined;
     if (id) {
       const previous = await this.client.from("assignments").select("updated_at").eq("assignment_id", id).maybeSingle();
       if (previous.error) throw previous.error;
       if (!previous.data) throw new Error("ไม่พบงานนี้");
-      previousUpdatedAt = previous.data.updated_at as string;
+      if (!expectedUpdatedAt || previous.data.updated_at !== expectedUpdatedAt) throw new Error("งานมีการเปลี่ยนแปลงระหว่างที่คุณกำลังแก้ไข กรุณาโหลดข้อมูลล่าสุด");
     }
     const query = id
-      ? this.client.from("assignments").update({ ...input, updated_at: new Date().toISOString() }).eq("assignment_id", id).eq("updated_at", previousUpdatedAt!)
+      ? this.client.from("assignments").update({ ...input, updated_at: new Date().toISOString() }).eq("assignment_id", id).eq("updated_at", expectedUpdatedAt!)
       : this.client.from("assignments").insert({ ...input, created_by: user.uid });
     const { data, error } = await query.select(TASK_FIELDS).maybeSingle();
     if (error) throw error;

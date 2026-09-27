@@ -11,7 +11,13 @@ async function walk(dir) {
   return result;
 }
 const html=(await walk(root)).filter(p=>p.endsWith(".html"));
-if(html.length!==20)throw new Error("Expected 20 HTML entries; got "+html.length);
+const sourceRoot=path.resolve("src");
+const sourceHtml=(await walk(sourceRoot)).filter(p=>p.endsWith(".html"));
+const expected=new Set(sourceHtml.map(file=>path.relative(sourceRoot,file)));
+const built=new Set(html.map(file=>path.relative(root,file)));
+const missing=[...expected].filter(file=>!built.has(file));
+const unexpected=[...built].filter(file=>!expected.has(file));
+if(missing.length||unexpected.length)throw new Error(`HTML entry mismatch. Missing: ${missing.join(", ")||"none"}; unexpected: ${unexpected.join(", ")||"none"}`);
 for(const file of html){
   const text=await readFile(file,"utf8");
   if(!text.includes('lang="th"')||!text.includes("<title>"))throw new Error("Missing metadata: "+file);

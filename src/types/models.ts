@@ -52,11 +52,11 @@ export interface Repository {
   listPosts(query: PostQuery): Promise<PostPage>;
   getPost(id: string): Promise<PostRow | null>;
   getReviewerName(uid: string): Promise<string | null>;
-  savePost(input: PostInput, id?: string): Promise<PostRow>;
+  savePost(input: PostInput, id?: string, expectedUpdatedAt?: string): Promise<PostRow>;
   reviewPost(id: string, action: "approve" | "reject" | "general"): Promise<void>;
   pinPost(id: string, pinned: boolean): Promise<void>;
   deletePost(id: string): Promise<void>;
-  saveAssignment(input: AssignmentInput, id?: string): Promise<AssignmentRow>;
+  saveAssignment(input: AssignmentInput, id?: string, expectedUpdatedAt?: string): Promise<AssignmentRow>;
   deleteAssignment(id: string): Promise<void>;
   getSubjects(): Promise<SubjectCatalogRow[]>;
   saveSubject(input: SubjectInput, id?: string): Promise<SubjectCatalogRow>;

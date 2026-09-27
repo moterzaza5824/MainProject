@@ -41,6 +41,26 @@ values
     '{"all":"2099-01-01T00:00:00Z"}', '[]'
   );
 
+do $$
+declare was_blocked boolean := false;
+begin
+  begin
+    insert into public.assignments (
+      assignment_id, created_by, subject_id, subject_name, academic_year, semester,
+      title, description, submission_channel, schedule_mode, due_dates, resources
+    ) values (
+      'b9999999-9999-4999-8999-999999999999', '33333333-3333-4333-8333-333333333333',
+      'a1111111-1111-4111-8111-111111111111', 'RLS Subject One', 2699, '1',
+      'Invalid calendar date', 'Must be rejected', 'Test channel', 'UNIFIED',
+      '{"all":"2099-02-31T00:00:00Z"}', '[]'
+    );
+  exception when check_violation then
+    was_blocked := true;
+  end;
+  if not was_blocked then raise exception 'impossible calendar date was accepted'; end if;
+end;
+$$;
+
 insert into public.user_task_progress (id, uid, assignment_id, status, note)
 values
   ('11111111-1111-4111-8111-111111111111_b1111111-1111-4111-8111-111111111111', '11111111-1111-4111-8111-111111111111', 'b1111111-1111-4111-8111-111111111111', 'TODO', 'student one private note'),
@@ -77,11 +97,15 @@ $$;
 update public.users set role = 'admin'
 where uid = '11111111-1111-4111-8111-111111111111';
 
+update public.users set full_name = 'Forged Admin Name'
+where uid = '11111111-1111-4111-8111-111111111111';
+
 do $$
-declare actual_role text;
+declare actual_role text; actual_name text;
 begin
-  select role into actual_role from public.users where uid = '11111111-1111-4111-8111-111111111111';
+  select role, full_name into actual_role, actual_name from public.users where uid = '11111111-1111-4111-8111-111111111111';
   if actual_role <> 'student' then raise exception 'student changed own role'; end if;
+  if actual_name <> 'RLS Student One' then raise exception 'student changed own verified name'; end if;
 end;
 $$;
 

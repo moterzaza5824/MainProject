@@ -121,10 +121,11 @@ export class DemoRepository implements Repository {
     const size = Math.min(15, Math.max(1, query.pageSize ?? 10)), page = Math.max(1, query.page ?? 1);
     return { rows: rows.slice((page-1)*size, page*size), total: rows.length };
   }
-  async savePost(input: PostInput, id?: string) {
+  async savePost(input: PostInput, id?: string, expectedUpdatedAt?: string) {
     validatePost(input);
     const user = await this.user(), data = this.read(), old = data.posts.find(p => p.post_id === id);
     if (id && !old) throw new Error("ไม่พบประกาศนี้");
+    if (old && (!expectedUpdatedAt || old.updated_at !== expectedUpdatedAt)) throw new Error("ประกาศมีการเปลี่ยนแปลงระหว่างที่คุณกำลังแก้ไข กรุณาโหลดข้อมูลล่าสุด");
     if (old && old.author_id !== user.uid && user.role !== "admin") throw new Error("แก้ไขได้เฉพาะประกาศของตนเอง");
     if (!id && data.posts.filter(p => p.author_id === user.uid && Date.now() - Date.parse(p.created_at) < 60000).length >= 3) throw new Error("สร้างประกาศได้ไม่เกิน 3 ครั้งต่อนาที กรุณารอสักครู่");
     const post = { ...input, post_id: id ?? crypto.randomUUID(), author_id: old?.author_id ?? user.uid, author_name: old?.author_name ?? user.full_name,
@@ -153,9 +154,10 @@ export class DemoRepository implements Repository {
     if (!post || (post.author_id !== user.uid && user.role !== "admin")) throw new Error("ไม่มีสิทธิ์ลบประกาศนี้");
     data.posts = data.posts.filter(p => p.post_id !== id); this.write(data);
   }
-  async saveAssignment(input: AssignmentInput, id?: string) {
+  async saveAssignment(input: AssignmentInput, id?: string, expectedUpdatedAt?: string) {
     validateAssignment(input); const user = await this.user(true), data = this.read(), old = data.assignments.find(a => a.assignment_id === id);
     if (id && !old) throw new Error("ไม่พบงานนี้");
+    if (old && (!expectedUpdatedAt || old.updated_at !== expectedUpdatedAt)) throw new Error("งานมีการเปลี่ยนแปลงระหว่างที่คุณกำลังแก้ไข กรุณาโหลดข้อมูลล่าสุด");
     const row = { ...input, assignment_id: id ?? crypto.randomUUID(), created_by: old?.created_by ?? user.uid, created_at: old?.created_at ?? new Date().toISOString(), updated_at: new Date().toISOString() };
     data.assignments = old ? data.assignments.map(a => a.assignment_id === id ? row : a) : [row, ...data.assignments];
     this.write(data); return row;
@@ -209,8 +211,8 @@ export class DemoRepository implements Repository {
 let selected: Promise<Repository> | undefined;
 export function getRepository(): Promise<Repository> {
   const mode = import.meta.env.VITE_DATA_MODE;
-  if (mode && mode !== "demo" && mode !== "supabase") return Promise.reject(new Error("VITE_DATA_MODE ต้องเป็น demo หรือ supabase"));
-  return selected ??= import.meta.env.VITE_DATA_MODE === "supabase"
+  if (mode !== "demo" && mode !== "supabase") return Promise.reject(new Error("ยังไม่ได้ตั้งค่า VITE_DATA_MODE เป็น demo หรือ supabase"));
+  return selected ??= mode === "supabase"
     ? import("./supabase-repository").then(m => new m.SupabaseRepository())
     : Promise.resolve(new DemoRepository());
 }

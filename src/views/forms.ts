@@ -71,7 +71,7 @@ export function renderPostForm(ctx:Context){
       if(section&&subject&&section>subject.sectionCount)throw new Error("Sec ที่เลือกไม่อยู่ในรายวิชานี้");
       const targeted=!!subject&&!!audience;
       const input:PostInput={title:String(fd.get("title")).trim(),content:String(fd.get("content")).trim(),category,is_pinned:fd.has("pinned"),image_url:String(fd.get("image_url")??"").trim()||null,subject_id:targeted?subject.id:null,subject_name:targeted?subject.name:null,target_scope:section?"SPECIFIC":"ALL",target_sections:section?[section]:[],attachments:[...links.querySelectorAll(".attachment-row")].map(row=>({name:row.querySelector<HTMLInputElement>("[data-link-name]")!.value.trim(),url:row.querySelector<HTMLInputElement>("[data-link-url]")!.value.trim()}))};
-      validatePost(input);const saved=await ctx.repo.savePost(input,id);clearDirty();navigate("postDetail",saved.post_id);
+      validatePost(input);const saved=await ctx.repo.savePost(input,id,post?.updated_at);clearDirty();navigate("postDetail",saved.post_id);
     }catch(error){errorIn(form,error);button.disabled=false;}
   };
 }
@@ -127,7 +127,7 @@ export function renderAssignmentForm(ctx:Context){
       const keys=mode==="UNIFIED"?["all"]:[...splitFields.querySelectorAll<HTMLInputElement>('input[name^="sec_"]')].map(input=>input.name);
       for(const key of keys){const value=String(fd.get(key)??"");if(value)dates[key as keyof AssignmentInput["due_dates"]]=fromThaiInput(value);}
       const input:AssignmentInput={subject_id:subject?.id??task?.subject_id??null,subject_name:subjectName,academic_year:subject?.academicYear??task?.academic_year??null,semester:subject?.semester??task?.semester??null,title:String(fd.get("title")).trim(),description:String(fd.get("description")).trim(),submission_channel:channelName,schedule_mode:mode,due_dates:dates,resources:[...resourceRows.querySelectorAll(".attachment-row")].map(row=>({name:row.querySelector<HTMLInputElement>("[data-resource-name]")!.value.trim(),url:row.querySelector<HTMLInputElement>("[data-resource-url]")!.value.trim()}))};
-      validateAssignment(input);const saved=await ctx.repo.saveAssignment(input,id);clearDirty();navigate("assignmentDetail",saved.assignment_id);
+      validateAssignment(input);const saved=await ctx.repo.saveAssignment(input,id,task?.updated_at);clearDirty();navigate("assignmentDetail",saved.assignment_id);
     }catch(error){errorIn(form,error);button.disabled=false;}
   };
 }

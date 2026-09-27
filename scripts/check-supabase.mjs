@@ -11,6 +11,7 @@ const auth = contents[migrationNames.indexOf("002_auth_profiles.sql")];
 const policies = contents[migrationNames.indexOf("003_rls_policies.sql")];
 const resourcesMigration = contents[migrationNames.indexOf("005_assignment_resources_jsonb.sql")];
 const hardeningMigration = contents[migrationNames.indexOf("006_harden_backend_integrity.sql")];
+const integrityMigration = contents[migrationNames.indexOf("007_close_integrity_gaps.sql")];
 const seed = contents.at(-1);
 
 for (const [index,sql] of contents.entries()) {
@@ -29,6 +30,8 @@ assert.match(resourcesMigration,/rename column resources_jsonb to resources/i,"a
 assert.match(resourcesMigration,/private\.valid_attachments\(resources\)/i,"assignment resources must validate named links");
 assert.match(hardeningMigration,/progress_insert_visible_assignment/i,"progress writes must require a visible assignment");
 assert.match(hardeningMigration,/new\.created_by\s*=\s*\(select auth\.uid\(\)\)/i,"database must own audit identities");
+assert.match(integrityMigration,/new\.full_name\s*=\s*old\.full_name/i,"students must not be able to forge profile names");
+assert.match(integrityMigration,/maximum_day/i,"due dates must validate real calendar days");
 assert.match(seed,/insert into public\.subjects/i,"missing reproducible subject seed");
 
 console.log("Supabase contract checks passed (schema, auth trigger, RLS, seed).");
