@@ -86,9 +86,9 @@ Frontend หลัก, Supabase migrations/RLS/adapter และ Google OAuth �
 
 **Acceptance criteria**
 
-- ตั้งค่า Google OAuth, Email provider และ redirect allowlist สำหรับ local/staging/production
+- ตั้งค่า Google OAuth สำหรับนิสิต, Email provider สำหรับ Admin และ redirect allowlist สำหรับ local/staging/production
 - ตรวจ verified email รูปแบบ `6802xxxx@up.ac.th` ที่ trigger, constraint และ RLS; ค่า OAuth `hd` ไม่ถูกใช้เป็นสิทธิ์
-- profile ใช้ `auth.users.id` เป็น `uid`, role เริ่มต้นเป็น student และ admin ตั้งได้ผ่านขั้นตอนที่เชื่อถือได้เท่านั้น
+- profile ใช้ `auth.users.id` เป็น `uid`, role เริ่มต้นเป็น student, admin ตั้งได้ผ่านขั้นตอนที่เชื่อถือได้เท่านั้น และ RLS ยอมรับสิทธิ์ Admin เฉพาะ password session
 - ผู้ใช้เปลี่ยน `uid`, email, student ID หรือ role จาก client ไม่ได้
 - session หมดอายุหรือบัญชีถูกถอนสิทธิ์แล้ว API ปฏิเสธคำขอและ UI พากลับสู่ flow ที่เหมาะสม
 

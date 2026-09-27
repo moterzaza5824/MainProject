@@ -6,7 +6,7 @@
 
 | กลุ่ม | URL ภายใต้ /pages/ | การทำงาน |
 |---|---|---|
-| บัญชี | auth/login/, auth/access-denied/ | Username/Password, Google `6802xxxx@up.ac.th`, แจ้งสิทธิ์, เปลี่ยนบัญชี |
+| บัญชี | auth/login/, auth/access-denied/ | Admin ผ่าน Username/Password เท่านั้น, นิสิตผ่าน Google `6802xxxx@up.ac.th`, แจ้งสิทธิ์, เปลี่ยนบัญชี |
 | ภาพรวม | dashboard/, admin/dashboard/ | สรุปงาน/ประกาศ/คำขอ |
 | ประกาศ | posts/official/, posts/general/ | ข่าวที่เผยแพร่แล้ว กรองตามรายวิชาที่ลงทะเบียนและแบ่งหน้า |
 | คำขอของฉัน | posts/requests/ | คำขอประกาศทางการที่รออนุมัติ/ไม่อนุมัติ แยกจากหน้าข่าว |

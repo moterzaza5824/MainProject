@@ -7,6 +7,7 @@ export type PostStatus = "published" | "pending" | "rejected";
 export interface UserRow {
   uid: string; email: string; student_id: string; full_name: string; role: Role;
   created_at: string; updated_at: string;
+  auth_method?: "password" | "oauth" | "other";
 }
 export interface Attachment { name: string; url: string }
 export interface PostRow {

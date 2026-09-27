@@ -15,7 +15,7 @@ import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
 import { pageDataRequirements } from "../src/services/page-data";
-import { isEligibleCohortEmail } from "../src/services/auth-policy";
+import { isEligibleCohortEmail, sessionAuthMethod } from "../src/services/auth-policy";
 import { addSubject, deleteSubject, loadCatalog, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
@@ -72,6 +72,10 @@ test("cohort access accepts only 6802 student accounts", () => {
   assert.equal(isEligibleCohortEmail("68999999@up.ac.th"), false);
   assert.equal(isEligibleCohortEmail("68020001@gmail.com"), false);
   assert.equal(isEligibleCohortEmail("6802001@up.ac.th"), false);
+  const token = (amr: string) => `header.${btoa(JSON.stringify({ amr: [{ method: amr }] }))}.signature`;
+  assert.equal(sessionAuthMethod(token("password")), "password");
+  assert.equal(sessionAuthMethod(token("oauth")), "oauth");
+  assert.equal(sessionAuthMethod("invalid"), "other");
 });
 
 test("role guards reject unauthorized mutations and progress remains private", async () => {
@@ -101,11 +105,9 @@ test("legacy progress and assignment resource URLs migrate to current formats", 
   assert.equal(JSON.parse(localStorage.getItem("se68-demo-data-v1")!).progress[0].status,"TODO");
 });
 
-test("demo username/password login validates credentials and Google explains setup", async () => {
+test("password login is admin-only and Google is presented as student login", async () => {
   await assert.rejects(repo.signInWithPassword("68020001","wrong"),/Username หรือ Password/);
-  await repo.signInWithPassword("68020001@up.ac.th","se68student");
-  assert.equal((await repo.currentUser())?.role,"student");
-  await repo.signOut();
+  await assert.rejects(repo.signInWithPassword("68020001@up.ac.th","se68student"),/Username หรือ Password/);
   await repo.signInWithPassword("admin","se68admin");
   assert.equal((await repo.currentUser())?.role,"admin");
   await repo.signOut();
@@ -114,7 +116,7 @@ test("demo username/password login validates credentials and Google explains set
   assert.ok(document.querySelector("main.auth-content"));
   assert.ok(document.querySelector("#login-form"));
   assert.ok(document.querySelector("#google-login"));
-  assert.match(document.body.textContent!,/@up\.ac\.th/);
+  assert.match(document.body.textContent!,/Google Login ให้สิทธิ์นิสิตเท่านั้น/);
 });
 
 test("official approval, stale review, and student re-edit obey moderation lifecycle", async () => {

@@ -91,7 +91,7 @@ values (
 
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
-select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated","amr":[{"method":"oauth","timestamp":1}]}', true);
 
 do $$
 declare visible_count integer;
@@ -164,7 +164,46 @@ end;
 $$;
 
 select set_config('request.jwt.claim.sub', '33333333-3333-4333-8333-333333333333', true);
-select set_config('request.jwt.claims', '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","amr":[{"method":"oauth","timestamp":1}]}', true);
+
+do $$
+declare was_blocked boolean := false;
+begin
+  begin
+    insert into public.subjects (subject_id, name, academic_year, semester, section_count, created_by)
+    values (
+      'a4444444-4444-4444-8444-444444444444', 'OAuth admin must be blocked', 2699, '1', 1,
+      '33333333-3333-4333-8333-333333333333'
+    );
+  exception when insufficient_privilege then
+    was_blocked := true;
+  end;
+  if not was_blocked then raise exception 'OAuth session received administrator write access'; end if;
+end;
+$$;
+
+insert into public.posts (
+  post_id, author_id, author_name, title, content, category, status, is_pinned,
+  subject_id, subject_name, target_scope, target_sections, approved_by
+)
+values (
+  'c3333333-3333-4333-8333-333333333333', '33333333-3333-4333-8333-333333333333',
+  'Forged OAuth admin', 'OAuth admin request', 'Must receive student moderation', 'official', 'published', true,
+  'a1111111-1111-4111-8111-111111111111', 'RLS Subject One', 'ALL', '{}',
+  '33333333-3333-4333-8333-333333333333'
+);
+
+do $$
+declare saved_post public.posts%rowtype;
+begin
+  select * into saved_post from public.posts where post_id = 'c3333333-3333-4333-8333-333333333333';
+  if saved_post.status <> 'pending' or saved_post.is_pinned or saved_post.approved_by is not null then
+    raise exception 'OAuth admin bypassed student moderation rules';
+  end if;
+end;
+$$;
+
+select set_config('request.jwt.claims', '{"sub":"33333333-3333-4333-8333-333333333333","role":"authenticated","amr":[{"method":"password","timestamp":1}]}', true);
 
 insert into public.subjects (subject_id, name, academic_year, semester, section_count, created_by)
 values (

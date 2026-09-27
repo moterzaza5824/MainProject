@@ -6,19 +6,20 @@ import { busy } from "../ui/primitives";
 
 export function renderAuth(root: HTMLElement, repo: Repository, denied = false) {
   const loginPanel = `
-    ${repo.mode === "demo" ? '<div class="info-box"><b>บัญชีทดลอง</b><br>นิสิต: 68020001 / se68student<br>ผู้ดูแล: admin / se68admin</div>' : ""}
+    ${repo.mode === "demo" ? '<div class="info-box"><b>บัญชีผู้ดูแลทดลอง</b><br>Username: admin<br>Password: se68admin</div>' : ""}
+    <p class="eyebrow">ADMIN SIGN IN</p>
     <form id="login-form" class="login-form">
-      <label class="field">Username หรืออีเมลมหาวิทยาลัย
-        <input name="username" autocomplete="username" required placeholder="68020001 หรือ 68020001@up.ac.th">
+      <label class="field">Username ผู้ดูแลหรืออีเมลมหาวิทยาลัย
+        <input name="username" autocomplete="username" required placeholder="รหัสนิสิตผู้ดูแล หรือ 6802xxxx@up.ac.th">
       </label>
       <label class="field">Password
         <input name="password" type="password" autocomplete="current-password" required placeholder="กรอก Password">
       </label>
-      <button class="button primary" type="submit">${icon("user")} เข้าสู่ระบบ</button>
+      <button class="button primary" type="submit">${icon("user")} เข้าสู่ระบบผู้ดูแล</button>
     </form>
-    <div class="divider">หรือ</div>
-    <button class="button google-button" id="google-login" type="button"><b aria-hidden="true">G</b> เข้าสู่ระบบด้วย Google</button>
-    <p class="auth-note google-requirement"><b>Google Login ใช้ได้เฉพาะอีเมล 6802xxxx@up.ac.th</b><br>ระบบจะตรวจสอบรหัสนิสิตอีกครั้งหลัง Google ยืนยันตัวตน${repo.mode === "demo" ? " · ต้องเชื่อม Supabase ก่อนใช้งานจริง" : ""}</p>`;
+    <div class="divider">สำหรับนิสิต</div>
+    <button class="button google-button" id="google-login" type="button"><b aria-hidden="true">G</b> เข้าสู่ระบบนิสิตด้วย Google</button>
+    <p class="auth-note google-requirement"><b>Google Login ให้สิทธิ์นิสิตเท่านั้น</b><br>รองรับเฉพาะอีเมล 6802xxxx@up.ac.th และไม่สามารถเปิดเมนู Admin ได้ แม้บัญชีนั้นจะได้รับมอบหมายเป็นผู้ดูแล${repo.mode === "demo" ? " · ต้องเชื่อม Supabase ก่อนใช้งานจริง" : ""}</p>`;
   const deniedPanel = '<div class="info-box">สำหรับนิสิตรหัสขึ้นต้น 6802 และใช้อีเมล @up.ac.th เท่านั้น ส่วนหน้าจัดการระบบจำกัดสิทธิ์เฉพาะ Admin</div><a class="button primary" href="' + href("dashboard") + '">กลับหน้าภาพรวม</a><button class="button" id="change-account">เปลี่ยนบัญชี</button>';
 
   root.innerHTML = `<div class="auth-page"><section class="auth-story"><a class="brand" href="${href("login")}"><span class="brand-symbol">S<span>68</span></span><span>SE68 <b>HUB</b></span></a><div><p class="eyebrow" style="color:#83d9a6">YOUR CAMPUS. CONNECTED.</p><h1>ทุกข่าวสาร<br>ทุกงานของรุ่น<br><span>อยู่ที่เดียวกัน</span></h1><p>พื้นที่สำหรับนิสิตวิศวกรรมซอฟต์แวร์ รุ่น 68 ติดตามเรื่องสำคัญและจัดการงานของคุณได้อย่างเป็นระเบียบ</p><div class="auth-features"><div class="auth-feature">${icon("news")} ไม่พลาดประกาศสำคัญ</div><div class="auth-feature">${icon("calendar")} กำหนดส่งแยกตาม Section</div><div class="auth-feature">${icon("check")} เห็นความคืบหน้าของตัวเอง</div></div></div><footer>UNIVERSITY OF PHAYAO · SOFTWARE ENGINEERING</footer></section>

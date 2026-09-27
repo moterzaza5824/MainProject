@@ -54,9 +54,7 @@ export class DemoRepository implements Repository {
   async signInWithPassword(username: string, password: string): Promise<void> {
     const normalized = username.trim().toLowerCase().replace(/@up\.ac\.th$/, "");
     const account = normalized === "admin" && password === "se68admin"
-      ? this.read().users.find(u => u.role === "admin")
-      : normalized === "68020001" && password === "se68student"
-        ? this.read().users.find(u => u.role === "student") : undefined;
+      ? this.read().users.find(u => u.role === "admin") : undefined;
     if (!account) throw new Error("Username หรือ Password ไม่ถูกต้อง");
     localStorage.setItem(SESSION, account.uid);
   }
