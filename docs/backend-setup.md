@@ -32,7 +32,7 @@ Google/OAuth ให้สิทธิ์ระดับนิสิตเสม�
 ## 3. ตั้งผู้ดูแลคนแรก
 
 1. สร้างหรือเพิ่ม Password identity ให้บัญชี `6802xxxx@up.ac.th` ผ่าน Supabase Auth จากฝั่ง server ที่เชื่อถือได้ ห้ามใช้ `service_role`/secret key ใน browser หรือไฟล์ `VITE_*` หากบัญชีเดิมสร้างผ่าน Google ให้ใช้ Auth Admin API `updateUserById()` จาก server เพื่อกำหนดรหัสผ่าน
-2. Login ด้วย Username/Password หนึ่งครั้งเพื่อยืนยันว่า Email provider ทำงาน จากนั้นเปิด Supabase Dashboard → SQL Editor แล้วตรวจบัญชีเป้าหมาย:
+2. เปิด Supabase Dashboard → SQL Editor แล้วตรวจ profile ที่ Auth trigger สร้างให้บัญชีเป้าหมายก่อน:
 
 ```sql
 select uid, email, student_id, full_name, role
