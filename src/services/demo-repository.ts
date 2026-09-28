@@ -23,6 +23,10 @@ export class DemoRepository implements Repository {
         if(JSON.stringify(resources)!==JSON.stringify(row.resources??[]))changed=true;
         return {...row,resources};
       });
+      data.posts=data.posts.map((row:{category?:string;subject_id?:unknown;[key:string]:unknown})=>{
+        if(row.category==="general"&&row.subject_id){changed=true;return {...row,category:"official"};}
+        return row;
+      });
       if(changed)this.write(data as Snapshot);
       return data as Snapshot;
     } catch { throw new Error("ข้อมูลตัวอย่างในเบราว์เซอร์เสียหาย กรุณาล้างข้อมูลเว็บไซต์แล้วลองใหม่"); }
@@ -100,7 +104,7 @@ export class DemoRepository implements Repository {
     const user = await this.user(true), data = this.read(), post = data.posts.find(p => p.post_id === id);
     if (!post || post.status !== "pending") throw new Error("ประกาศนี้ถูกดำเนินการแล้ว กรุณาโหลดข้อมูลใหม่");
     post.status = action === "reject" ? "rejected" : "published";
-    if (action === "general") post.category = "general";
+    if (action === "general") { post.category = "general";post.subject_id=null;post.subject_name=null;post.target_scope="ALL";post.target_sections=[]; }
     post.approved_by = user.uid; post.updated_at = new Date().toISOString();
     this.write(data);
   }

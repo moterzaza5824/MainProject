@@ -122,8 +122,8 @@ export class SupabaseRepository implements Repository {
         if (!data || data.length < 500) return rows;
       }
     };
-    const [official, mine, pending, publishedCount, assignments, progress] = await Promise.all([
-      this.listPosts({ category: "official", status: "published", pageSize: 3 }),
+    const [general, mine, pending, publishedCount, assignments, progress] = await Promise.all([
+      this.listPosts({ category: "general", status: "published", pageSize: 3 }),
       this.listPosts({ own: true, pageSize: 10 }),
       user.role === "admin" ? this.listPosts({ status: "pending", pageSize: 5 }) : Promise.resolve({ rows: [], total: 0 }),
       this.client.from("posts").select("post_id", { count: "exact", head: true }).eq("status", "published"),
@@ -131,7 +131,7 @@ export class SupabaseRepository implements Repository {
       readAll("user_task_progress", "id,uid,assignment_id,status,note,updated_at", "id", true)
     ]);
     if (publishedCount.error) throw publishedCount.error;
-    const posts = [...new Map([...official.rows, ...mine.rows, ...pending.rows].map(p => [p.post_id, p])).values()];
+    const posts = [...new Map([...general.rows, ...mine.rows, ...pending.rows].map(p => [p.post_id, p])).values()];
     const normalizedProgress=progress.map(row=>{const value=row as ProgressRow&{status:string};return {...value,status:value.status==="DONE"?"DONE" as const:"TODO" as const};});
     const normalizedAssignments=(assignments as AssignmentRow[]).map(row=>({...row,resources:normalizeAssignmentResources(row.resources)}));
     return { posts, assignments: normalizedAssignments, progress: normalizedProgress, users: [user], post_counts: { pending: pending.total, published: publishedCount.count ?? 0 } };
@@ -157,8 +157,8 @@ export class SupabaseRepository implements Repository {
     if (options.own) query = query.eq("author_id", user.uid);
     if (options.processed) query = query.or("approved_by.not.is.null,status.eq.rejected");
     if (options.section && options.section !== "ALL") query = query.or("target_scope.eq.ALL,target_sections.cs.{" + options.section + "}");
-    // Supabase RLS already filters official posts by the current user's
-    // enrollments. Keeping pagination on the server avoids a 1,000-row cap.
+    // Supabase RLS filters official posts by the current user's enrollments.
+    // Keeping pagination on the server avoids a 1,000-row cap.
     const { data, count, error } = await query.order("is_pinned", { ascending: false }).order("updated_at", { ascending: false }).order("post_id").range((page-1)*size, page*size-1);
     if (error) throw error;
     return { rows: data as PostRow[], total: count ?? 0 };
@@ -180,7 +180,7 @@ export class SupabaseRepository implements Repository {
   }
   async reviewPost(id: string, action: "approve" | "reject" | "general") {
     const user = await this.user(true);
-    const { data, error } = await this.client.from("posts").update({ status: action === "reject" ? "rejected" : "published", ...(action === "general" ? { category: "general" } : {}), approved_by: user.uid, updated_at: new Date().toISOString() }).eq("post_id", id).eq("status", "pending").select("post_id");
+    const { data, error } = await this.client.from("posts").update({ status: action === "reject" ? "rejected" : "published", ...(action === "general" ? { category: "general", subject_id: null, subject_name: null, target_scope: "ALL", target_sections: [] } : {}), approved_by: user.uid, updated_at: new Date().toISOString() }).eq("post_id", id).eq("status", "pending").select("post_id");
     if (error) throw error; if (!data?.length) throw new Error("ประกาศนี้ถูกดำเนินการแล้ว กรุณาโหลดใหม่");
   }
   async pinPost(id: string, pinned: boolean) {

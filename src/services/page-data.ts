@@ -80,7 +80,7 @@ export async function loadPageData(repo: Repository, user: UserRow, route: Route
   }
 
   if (route === "dashboard" && user.role === "student" && enrollments) {
-    const feed = await repo.listPosts({ status: "published", pageSize: 3, enrollments });
+    const feed = await repo.listPosts({ category: "general", status: "published", pageSize: 3, enrollments });
     data.posts = [...new Map([...data.posts, ...feed.rows].map(post => [post.post_id, post])).values()];
   }
 

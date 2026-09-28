@@ -148,6 +148,7 @@ test("General author edits preserve admin pin and reviewer; other pending posts 
   const p=await repo.savePost(postInput("official"));
   await repo.signIn("admin"); await repo.reviewPost(p.post_id,"general"); await repo.pinPost(p.post_id,true);
   const moderated=(await repo.getPost(p.post_id))!;
+  assert.equal(moderated.subject_id,null);assert.equal(moderated.subject_name,null);assert.equal(moderated.target_scope,"ALL");assert.deepEqual(moderated.target_sections,[]);
   await repo.signIn("student");
   const edited=await repo.savePost({...moderated,title:"แก้คำผิด",is_pinned:false},p.post_id,moderated.updated_at);
   assert.equal(edited.is_pinned,true); assert.equal(edited.approved_by,moderated.approved_by);
@@ -191,6 +192,7 @@ test("input validation and safe formatting reject dangerous links and invalid sc
   assert.throws(()=>validatePost({...postInput(),attachments:[{name:"X",url:"javascript:alert(1)"}]}));
   assert.throws(()=>validatePost({...postInput(),image_url:"javascript:alert(1)"}));
   assert.throws(()=>validatePost({...postInput("official"),subject_id:null,subject_name:null}),/ประกาศทางการ/);
+  assert.throws(()=>validatePost({...postInput(),subject_id:"seed-subject-1",subject_name:"Object-Oriented Programming"}),/ข่าวทั่วไป/);
   assert.throws(()=>validateAssignment({...taskInput(),schedule_mode:"SPLIT",due_dates:{}}));
   assert.throws(()=>validateAssignment({...taskInput(),due_dates:{sec_1:"2026-09-20"}}));
   assert.throws(()=>validateAssignment({...taskInput(),resources:[{name:"",url:"https://example.com/brief.pdf"}]}),/ต้องมีชื่อ/);
@@ -231,7 +233,7 @@ test("published news boards are separated from the student's pending request pag
   ctx.root.querySelector<HTMLButtonElement>('[data-category="all"]')!.click();await flush();
   assert.equal(ctx.root.querySelector('[data-category="all"]')?.classList.contains("active"),true);
   assert.match(ctx.root.textContent!,/เตรียมตัวสอบกลางภาค/);
-  assert.match(ctx.root.textContent!,/ชวนทบทวน Database/);
+  assert.match(ctx.root.textContent!,/ชวนทบทวนก่อนสอบ/);
   assert.doesNotMatch(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
   assert.ok(ctx.root.querySelector(".badge.official"));assert.ok(ctx.root.querySelector(".badge.general"));
   renderPosts(ctx,"requests");await flush();
@@ -324,8 +326,9 @@ test("announcement form keeps general targeting optional and requires course-awa
   let form=ctx.root.querySelector<HTMLFormElement>("#post-form")!;
   const generalSubject=form.elements.namedItem("subject_id") as HTMLSelectElement;
   const generalAudience=form.elements.namedItem("audience") as HTMLSelectElement;
-  assert.equal(generalSubject.required,false);
+  assert.equal(generalSubject.required,false);assert.equal(generalSubject.disabled,true);
   assert.equal(generalAudience.disabled,true);
+  assert.equal(ctx.root.querySelector<HTMLElement>("#course-targeting-fields")!.hidden,true);
   (form.elements.namedItem("title") as HTMLInputElement).value="ข่าวทั่วไปทั้งรุ่น";
   (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดสำหรับเพื่อนร่วมรุ่น";
   form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));
@@ -342,7 +345,8 @@ test("announcement form keeps general targeting optional and requires course-awa
   const subject=form.elements.namedItem("subject_id") as HTMLSelectElement;
   const audience=form.elements.namedItem("audience") as HTMLSelectElement;
   category.value="official";category.dispatchEvent(new Event("change",{bubbles:true}));
-  assert.equal(subject.required,true);
+  assert.equal(subject.required,true);assert.equal(subject.disabled,false);assert.equal(ctx.root.querySelector<HTMLElement>("#course-targeting-fields")!.hidden,false);
+  assert.doesNotMatch(subject.options[0].textContent!,/ทั้งรุ่น/);
   subject.value=subject.options[1].value;subject.dispatchEvent(new Event("change",{bubbles:true}));
   assert.equal(audience.disabled,false);assert.equal(audience.required,true);
   assert.match(audience.textContent!,/ทุก Sec/);assert.match(audience.textContent!,/Sec 1/);
@@ -370,7 +374,7 @@ test("announcement form locks a one-section subject to Sec 1 and saves that audi
   subject.value=oneSection.id;subject.dispatchEvent(new Event("change",{bubbles:true}));
   assert.equal(audience.value,"SEC:1");assert.equal(audience.disabled,true);assert.equal(audience.required,false);
   assert.match(audience.textContent!,/Sec 1 \(กำหนดอัตโนมัติ\)/);
-  assert.match(ctx.root.querySelector("#targeting-note")!.textContent!,/กำหนดกลุ่มผู้รับเป็น Sec 1 อัตโนมัติ/);
+  assert.match(ctx.root.querySelector("#targeting-note")!.textContent!,/กำหนดผู้รับเป็น Sec 1 อัตโนมัติ/);
   (form.elements.namedItem("title") as HTMLInputElement).value="ประกาศสำหรับวิชา Sec เดียว";
   (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดประกาศ";
   form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
@@ -379,26 +383,20 @@ test("announcement form locks a one-section subject to Sec 1 and saves that audi
   assert.equal(saved.target_scope,"SPECIFIC");assert.deepEqual(saved.target_sections,[1]);
 });
 
-test("admin can select, pin, and scope general news to a course", async () => {
+test("admin can pin cohort-wide general news without course targeting", async () => {
   const ctx=await context("admin");
-  addSubject(ctx.data.assignments,{name:"วิชาข่าวเก่า",academicYear:2568,semester:"1",sectionCount:2});
-  addSubject(ctx.data.assignments,{name:"วิชาข่าวล่าสุด",academicYear:2570,semester:"1",sectionCount:2});
-  const catalog=loadCatalog(ctx.data.assignments),course=catalog.subjects.find(row=>row.name==="วิชาข่าวล่าสุด")!;
   renderPostForm(ctx);
-  const form=ctx.root.querySelector<HTMLFormElement>("#post-form")!,year=form.elements.namedItem("post_academic_year") as HTMLSelectElement,subject=form.elements.namedItem("subject_id") as HTMLSelectElement,audience=form.elements.namedItem("audience") as HTMLSelectElement;
-  assert.equal(year.value,"2570");assert.match(subject.textContent!,/วิชาข่าวล่าสุด/);assert.doesNotMatch(subject.textContent!,/วิชาข่าวเก่า|Object-Oriented Programming/);
-  subject.value=course.id;subject.dispatchEvent(new Event("change",{bubbles:true}));
-  assert.equal(audience.value,"ALL");assert.equal(audience.disabled,false);assert.match(ctx.root.querySelector("#targeting-note")!.textContent!,/เฉพาะนิสิตที่ลงทะเบียน/);
+  const form=ctx.root.querySelector<HTMLFormElement>("#post-form")!,subject=form.elements.namedItem("subject_id") as HTMLSelectElement,audience=form.elements.namedItem("audience") as HTMLSelectElement;
+  assert.equal(ctx.root.querySelector<HTMLElement>("#course-targeting-fields")!.hidden,true);assert.equal(subject.disabled,true);assert.equal(audience.disabled,true);
+  assert.match(ctx.root.querySelector("#targeting-note")!.textContent!,/หน้าภาพรวมของทุกคน/);
   (form.elements.namedItem("pinned") as HTMLInputElement).checked=true;
-  (form.elements.namedItem("title") as HTMLInputElement).value="ข่าวปักหมุดประจำวิชา";
-  (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดสำหรับผู้เรียนวิชานี้";
+  (form.elements.namedItem("title") as HTMLInputElement).value="ข่าวประชาสัมพันธ์ปักหมุดทั้งรุ่น";
+  (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดสำหรับนิสิตทุกคน";
   form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
-  const saved=(await repo.snapshot()).posts.find(row=>row.title==="ข่าวปักหมุดประจำวิชา")!;
-  assert.equal(saved.category,"general");assert.equal(saved.subject_id,course.id);assert.equal(saved.target_scope,"ALL");assert.equal(saved.is_pinned,true);
+  const saved=(await repo.snapshot()).posts.find(row=>row.title==="ข่าวประชาสัมพันธ์ปักหมุดทั้งรุ่น")!;
+  assert.equal(saved.category,"general");assert.equal(saved.subject_id,null);assert.equal(saved.subject_name,null);assert.equal(saved.target_scope,"ALL");assert.deepEqual(saved.target_sections,[]);assert.equal(saved.is_pinned,true);
   await repo.signIn("student");
-  assert.equal((await repo.listPosts({category:"general",status:"published",enrollments:[]})).rows.some(row=>row.post_id===saved.post_id),false);
-  const enrollments=await repo.saveEnrollments([{subject_id:course.id,section:1}]);
-  assert.equal((await repo.listPosts({category:"general",status:"published",enrollments})).rows.some(row=>row.post_id===saved.post_id),true);
+  assert.equal((await repo.listPosts({category:"general",status:"published",enrollments:[]})).rows.some(row=>row.post_id===saved.post_id),true);
 });
 
 test("failed post query shows an actionable retry", async () => {
@@ -626,6 +624,8 @@ test("student dashboard summarizes unsubmitted work and prioritizes score-saving
   assert.ok(taskRows[0].querySelector(".badge.urgent"));assert.ok(taskRows[1].querySelector(".badge.soon"));
   assert.ok(ctx.root.querySelector(".announcement-preview .badge.pin"));
   assert.ok(ctx.root.querySelector(".announcement-preview .badge.general"));
+  assert.match(ctx.root.textContent!,/ข่าวประชาสัมพันธ์ของรุ่น/);assert.equal(ctx.root.querySelector('.panel-title a[href="/pages/posts/general/"]')!==null,true);
+  assert.doesNotMatch(ctx.root.querySelectorAll(".dashboard-grid>section")[1].textContent!,/เตรียมตัวสอบกลางภาค|ประกาศทางการ/);
 });
 
 test("sidebar collapse preference persists and active menu is correct", async () => {

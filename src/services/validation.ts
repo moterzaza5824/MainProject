@@ -28,6 +28,7 @@ export function validatePost(input: PostInput): void {
   const hasSubject = hasSubjectId && hasSubjectName;
   if (hasSubjectId !== hasSubjectName) throw new Error("ข้อมูลรายวิชาไม่ครบถ้วน กรุณาเลือกรายวิชาใหม่");
   if (input.category === "official" && !hasSubject) throw new Error("ประกาศทางการต้องเลือกรายวิชาและกลุ่มผู้รับ");
+  if (input.category === "general" && (hasSubject || input.target_scope !== "ALL" || input.target_sections.length)) throw new Error("ข่าวทั่วไปเป็นข่าวประชาสัมพันธ์ทั้งรุ่นและต้องไม่ระบุรายวิชาหรือ Sec");
   if (!hasSubject && input.target_scope === "SPECIFIC") throw new Error("กรุณาเลือกรายวิชาก่อนระบุ Sec");
   if (input.target_scope === "SPECIFIC" && (!input.target_sections.length || !input.target_sections.every(section => Number.isInteger(section) && section > 0) || new Set(input.target_sections).size !== input.target_sections.length)) throw new Error("กรุณาเลือกกลุ่มเรียนให้ถูกต้อง");
   if (input.target_scope === "ALL" && input.target_sections.length) throw new Error("ประกาศทั้งรุ่นต้องไม่ระบุกลุ่มเรียนเฉพาะ");
