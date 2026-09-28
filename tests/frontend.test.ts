@@ -58,7 +58,7 @@ test("page data loading avoids unrelated database work", () => {
     snapshot: true, catalog: true, enrollments: true, post: false, ownPosts: false
   });
   assert.deepEqual(pageDataRequirements("adminPosts", "admin", "supabase"), {
-    snapshot: false, catalog: false, enrollments: false, post: false, ownPosts: false
+    snapshot: false, catalog: true, enrollments: false, post: false, ownPosts: false
   });
   assert.equal(pageDataRequirements("adminCatalog", "admin", "supabase").snapshot, false);
   assert.equal(pageDataRequirements("adminCatalog", "admin", "demo").snapshot, true);
@@ -256,7 +256,7 @@ test("published news boards are separated from the student's pending request pag
 });
 
 test("admin announcement rows expose a clearly labeled delete action", async () => {
-  const ctx=await context("admin");
+  const ctx=await context("admin");ctx.catalog=loadCatalog(ctx.data.assignments);
   renderPosts(ctx,"admin");await flush();
   const rows=[...ctx.root.querySelectorAll<HTMLTableRowElement>("tbody tr")];
   assert.ok(rows.length>0);
@@ -266,6 +266,13 @@ test("admin announcement rows expose a clearly labeled delete action", async () 
     assert.match(button.textContent!,/ลบ/);
     assert.equal(button.title,"ลบประกาศ");
   }
+  const subject=ctx.root.querySelector<HTMLSelectElement>("#post-subject")!,search=ctx.root.querySelector<HTMLInputElement>("#post-search")!,filters=ctx.root.querySelector<HTMLFormElement>("#post-filters")!;
+  assert.equal(subject.options[0].textContent,"ทุกวิชา");assert.ok(subject.options.length>1);
+  subject.value="seed-subject-1";subject.dispatchEvent(new Event("change",{bubbles:true}));await flush();
+  assert.ok([...ctx.root.querySelectorAll<HTMLTableRowElement>("tbody tr")].every(row=>/Object-Oriented Programming/.test(row.textContent??"")));
+  search.value="แจ้งเปลี่ยนห้องเรียน";filters.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
+  const searched=[...ctx.root.querySelectorAll<HTMLTableRowElement>("tbody tr")];
+  assert.equal(searched.length,1);assert.match(searched[0].textContent!,/แจ้งเปลี่ยนห้องเรียนปฏิบัติการ OOP/);
 });
 
 test("post cards lead with the author, keep context at the top, and place images after the copy", () => {

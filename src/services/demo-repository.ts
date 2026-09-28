@@ -74,9 +74,11 @@ export class DemoRepository implements Repository {
   async getReviewerName(uid: string) { await this.user(); return this.read().users.find(u => u.uid === uid)?.full_name ?? null; }
   async listPosts(query: PostQuery) {
     const user = await this.user(), data = await this.snapshot();
+    const search=query.search?.trim().toLocaleLowerCase("th");
     const rows = data.posts.filter(p =>
       (!query.category || p.category === query.category) &&
       (!query.subjectId || p.subject_id === query.subjectId) &&
+      (!search || p.title.toLocaleLowerCase("th").includes(search)) &&
       (!query.status || p.status === query.status) &&
       (!query.own || p.author_id === user.uid) &&
       (!query.processed || !!p.approved_by || p.status === "rejected") &&

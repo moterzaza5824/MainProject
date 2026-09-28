@@ -21,7 +21,7 @@ export function postCard(post: PostRow) {
 }
 export function renderPosts(ctx: Context, initialCategory: "official" | "general" | "requests" | "admin" | "approvals") {
   const admin = initialCategory==="admin", approval=initialCategory==="approvals", requests=initialCategory==="requests";
-  let boardCategory:"official"|"general"=initialCategory==="general"?"general":"official", selectedSubjectId="", own=false, page=1, tab="pending";
+  let boardCategory:"official"|"general"=initialCategory==="general"?"general":"official", selectedSubjectId="", adminSubjectId="", search="", own=false, page=1, tab="pending";
   let currentRows: PostRow[] = [], request = 0;
   const formRoute=ctx.user.role==="admin"?"adminPostForm":"postForm";
   const officialSubjects=[...(ctx.catalog?.subjects??[])].filter(subject=>ctx.user.role==="admin"||ctx.enrollments?.some(row=>row.subject_id===subject.id)).sort((a,b)=>b.academicYear-a.academicYear||Number(b.semester)-Number(a.semester)||a.name.localeCompare(b.name,"th"));
@@ -29,10 +29,10 @@ export function renderPosts(ctx: Context, initialCategory: "official" | "general
   ctx.root.innerHTML=heading(requests?"คำขอประกาศของฉัน":approval?"อนุมัติประกาศ":admin?"จัดการประกาศ":"ข่าวสาร",requests?"ติดตามคำขอประกาศทางการ โดยไม่ปะปนกับข่าวที่เผยแพร่แล้ว":approval?"ตรวจสอบคำขอ ก่อนเผยแพร่ข่าวสำคัญให้เพื่อนร่วมรุ่น":admin?"จัดการเนื้อหา สถานะ และประกาศที่ปักหมุด":"ข่าวทั่วไปสำหรับทั้งรุ่น และข่าวทางการที่แยกดูตามรายวิชาและ Sec",requests?"MY ANNOUNCEMENT REQUESTS":approval?"APPROVAL WORKFLOW":admin?"CONTENT MANAGEMENT":"NEWS & ANNOUNCEMENTS",
   '<a class="button primary" href="'+href(formRoute)+'">'+icon("plus")+' สร้างโพสต์</a>')+
   (requests?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="rejected">ไม่อนุมัติ</button></div>':approval?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="processed">ดำเนินการแล้ว</button></div>':admin?"":'<div class="tabs"><button class="'+(boardCategory==="official"?"active":"")+'" data-category="official">ประกาศทางการ</button><button class="'+(boardCategory==="general"?"active":"")+'" data-category="general">ประกาศทั่วไป</button></div>')+
-  (admin?'<div class="filter-panel"><label>แสดงรายการ<select id="post-owner"><option value="all">ทั้งหมด</option><option value="mine">ประกาศของฉัน</option></select></label></div>':requests||approval?"":`<div class="filter-panel" id="official-subject-panel" ${boardCategory==="general"?"hidden":""}><label>เลือกรายวิชาก่อนดูประกาศทางการ<select id="official-subject"><option value="">เลือกรายวิชา</option>${subjectOptions}</select><small>ระบบจะแสดงเฉพาะข่าวของวิชานี้และ Sec ที่คุณลงทะเบียน</small></label></div>`)+
+  (admin?`<form class="filter-panel" id="post-filters"><label>ค้นหาประกาศ<input id="post-search" type="search" maxlength="160" placeholder="พิมพ์หัวข้อประกาศ"></label><label>รายวิชา<select id="post-subject"><option value="">ทุกวิชา</option>${subjectOptions}</select></label><label>แสดงรายการ<select id="post-owner"><option value="all">ทั้งหมด</option><option value="mine">ประกาศของฉัน</option></select></label><button class="button primary" type="submit">${icon("search")} ค้นหา</button></form>`:requests||approval?"":`<div class="filter-panel" id="official-subject-panel" ${boardCategory==="general"?"hidden":""}><label>เลือกรายวิชาก่อนดูประกาศทางการ<select id="official-subject"><option value="">เลือกรายวิชา</option>${subjectOptions}</select><small>ระบบจะแสดงเฉพาะข่าวของวิชานี้และ Sec ที่คุณลงทะเบียน</small></label></div>`)+
   '<div id="posts-results"></div>';
   const results=ctx.root.querySelector<HTMLElement>("#posts-results")!;
-  const ownerSelect=ctx.root.querySelector<HTMLSelectElement>("#post-owner");
+  const ownerSelect=ctx.root.querySelector<HTMLSelectElement>("#post-owner"),adminSubjectSelect=ctx.root.querySelector<HTMLSelectElement>("#post-subject"),searchInput=ctx.root.querySelector<HTMLInputElement>("#post-search");
   const subjectPanel=ctx.root.querySelector<HTMLElement>("#official-subject-panel"),subjectSelect=ctx.root.querySelector<HTMLSelectElement>("#official-subject");
   if(ownerSelect)ownerSelect.value=own?"mine":"all";
   const render=async()=>{
@@ -45,7 +45,7 @@ export function renderPosts(ctx: Context, initialCategory: "official" | "general
     }
     results.innerHTML='<div class="loading" role="status">กำลังโหลดประกาศ…</div>';
     try {
-    const result=await ctx.repo.listPosts({own:requests?true:own||undefined,page,pageSize:10,enrollments:ctx.user.role==="student"?ctx.enrollments:undefined,
+    const result=await ctx.repo.listPosts({own:requests?true:own||undefined,subjectId:admin?adminSubjectId||undefined:undefined,search:admin?search||undefined:undefined,page,pageSize:10,enrollments:ctx.user.role==="student"?ctx.enrollments:undefined,
       ...(requests?{category:"official" as const,status:tab as "pending"|"rejected"}:approval?(tab==="pending"?{status:"pending" as const}:{processed:true}):!admin?{category:boardCategory,subjectId:boardCategory==="official"?selectedSubjectId:undefined,status:"published" as const}:{})});
     if(token!==request)return;
     const pages=Math.max(1,Math.ceil(result.total/10));
@@ -62,6 +62,8 @@ export function renderPosts(ctx: Context, initialCategory: "official" | "general
     }
   };
   ctx.root.querySelector<HTMLSelectElement>("#post-owner")?.addEventListener("change",event=>{own=(event.target as HTMLSelectElement).value==="mine";page=1;render();});
+  adminSubjectSelect?.addEventListener("change",()=>{adminSubjectId=adminSubjectSelect.value;page=1;render();});
+  ctx.root.querySelector<HTMLFormElement>("#post-filters")?.addEventListener("submit",event=>{event.preventDefault();search=searchInput?.value.trim()??"";page=1;render();});
   subjectSelect?.addEventListener("change",()=>{selectedSubjectId=subjectSelect.value;page=1;render();});
   ctx.root.addEventListener("click",event=>{
     const b=(event.target as Element).closest<HTMLButtonElement>("button");if(!b)return;

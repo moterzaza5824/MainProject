@@ -28,6 +28,7 @@ const catalogRoutes = new Set<RouteName>([
   "official",
   "general",
   "postForm",
+  "adminPosts",
   "adminPostForm",
   "assignmentForm",
   "adminCatalog"
@@ -49,7 +50,7 @@ const enrollmentRoutes = new Set<RouteName>([
 export function pageDataRequirements(route: RouteName, role: UserRow["role"], mode: Repository["mode"]) {
   return {
     snapshot: snapshotRoutes.has(route) || (route === "adminCatalog" && mode === "demo"),
-    catalog: catalogRoutes.has(route) && (role === "student" || ["official", "general", "adminPostForm", "assignmentForm", "adminCatalog"].includes(route)),
+    catalog: catalogRoutes.has(route) && (role === "student" || ["official", "general", "adminPosts", "adminPostForm", "assignmentForm", "adminCatalog"].includes(route)),
     enrollments: role === "student" && enrollmentRoutes.has(route),
     post: ["postDetail", "postForm", "adminPostForm"].includes(route),
     ownPosts: route === "profile"
