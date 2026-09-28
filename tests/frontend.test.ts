@@ -653,7 +653,9 @@ test("sidebar collapse preference persists and active menu is correct", async ()
   assert.match(document.querySelector('[aria-current="page"]')!.textContent!,/งานและการบ้าน/);
   assert.ok(document.querySelector('a[href="/pages/posts/requests/"]'));
   const studentMenu=[...document.querySelectorAll<HTMLAnchorElement>("#sidebar-nav>a")].map(link=>link.textContent!.trim());
-  assert.deepEqual(studentMenu,["ภาพรวม","ข่าวสาร","งานและการบ้าน","รายวิชาของฉัน","คำขอประกาศของฉัน","โปรไฟล์"]);
+  assert.deepEqual(studentMenu,["ภาพรวม","ข่าวสาร","งานและการบ้าน","คำขอประกาศของฉัน","รายวิชาของฉัน","โปรไฟล์"]);
+  const accountCaption=[...document.querySelectorAll<HTMLElement>("#sidebar-nav .nav-caption")].find(caption=>caption.textContent==="บัญชี")!;
+  assert.equal(accountCaption.nextElementSibling?.textContent?.trim(),"รายวิชาของฉัน");
   assert.equal(document.querySelector('a[href="/pages/calendar/"]'),null);
   document.querySelector<HTMLButtonElement>("#collapse-menu")!.click();
   assert.equal(localStorage.getItem("se68-sidebar-collapsed"),"true");

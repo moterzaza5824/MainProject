@@ -19,9 +19,9 @@ export function mountShell(user: UserRow, active: RouteName, repo: Repository): 
     <a class="profile-link" href="${href("profile")}"><span class="profile-label"><strong>${e(user.full_name)}</strong><small>${e(user.role === "admin" ? "ผู้ดูแลระบบ" : "นิสิต • รุ่น 68")}</small></span><span class="avatar">${e(user.full_name.slice(0,1))}</span></a>
   </header>
   <aside class="sidebar" id="sidebar" aria-label="เมนูหลัก"><div class="sidebar-heading"><span>พื้นที่ของฉัน</span><button class="icon-button" id="collapse-menu" type="button" aria-label="พับเมนู" aria-expanded="true" aria-controls="sidebar-nav">${icon("left")}</button></div>
-    <nav id="sidebar-nav">${nav("dashboard","ภาพรวม","grid")}${nav("official","ข่าวสาร","news")}${nav("assignments","งานและการบ้าน","tasks")}${user.role === "student" ? nav("enrollment","รายวิชาของฉัน","book")+nav("requests","คำขอประกาศของฉัน","check") : ""}
+    <nav id="sidebar-nav">${nav("dashboard","ภาพรวม","grid")}${nav("official","ข่าวสาร","news")}${nav("assignments","งานและการบ้าน","tasks")}${user.role === "student" ? nav("requests","คำขอประกาศของฉัน","check") : ""}
     ${user.role === "admin" ? `<div class="nav-caption">จัดการระบบ</div>${nav("admin","ภาพรวมผู้ดูแล","shield")}${nav("approvals","อนุมัติประกาศ","check")}${nav("adminPosts","จัดการประกาศ","news")}${nav("adminAssignments","จัดการงาน","tasks")}${nav("adminCatalog","ข้อมูลพื้นฐาน","book")}` : ""}
-    <div class="nav-caption">บัญชี</div>${nav("profile","โปรไฟล์","user")}</nav>
+    <div class="nav-caption">บัญชี</div>${user.role === "student" ? nav("enrollment","รายวิชาของฉัน","book") : ""}${nav("profile","โปรไฟล์","user")}</nav>
     <div class="sidebar-bottom"><div class="cohort-label"><span class="cohort-mark">68</span><span><b>SE68 COMMUNITY</b><small>พื้นที่ของพวกเรา</small></span></div><button class="nav-signout" id="signout" type="button" title="ออกจากระบบ">${icon("out")}<span>ออกจากระบบ</span></button></div>
   </aside><button class="scrim" id="scrim" aria-label="ปิดเมนู" tabindex="-1" hidden></button>
   <div class="workspace">${repo.mode === "demo" ? '<div class="demo-strip"><span>โหมดทดลอง</span> ข้อมูลตัวอย่างบันทึกเฉพาะเบราว์เซอร์นี้ <a href="' + href("profile") + '">ดูบัญชีทดลอง ↗</a></div>' : ""}
