@@ -39,7 +39,7 @@ export function removeEnrollment(uid:string,subjectId:string):EnrollmentRow[] {
 }
 const subjectForAssignment=(task:AssignmentRow,catalog:MasterCatalog)=>task.subject_id?catalog.subjects.find(row=>row.id===task.subject_id):catalog.subjects.find(row=>row.name===task.subject_name&&(!task.academic_year||row.academicYear===task.academic_year)&&(!task.semester||row.semester===task.semester));
 export function canViewPostForEnrollments(post:PostRow,enrollments:EnrollmentRow[],uid?:string):boolean {
-  if(post.author_id===uid||post.category==="general")return true;
+  if(post.author_id===uid||(post.category==="general"&&!post.subject_id))return true;
   if(!post.subject_id)return false;
   const enrollment=enrollments.find(row=>row.subject_id===post.subject_id);
   return !!enrollment&&(post.target_scope==="ALL"||post.target_sections.includes(enrollment.section));

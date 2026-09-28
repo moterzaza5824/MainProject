@@ -200,7 +200,7 @@ label>input,label>select,label>textarea{margin-top:7px}
 .dashboard-onboarding{align-items:center;margin-bottom:24px}.dashboard-onboarding .button{margin-left:auto;flex:0 0 auto}
 .enrollment-bulk-footer{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-top:18px}.enrollment-bulk-footer strong,.enrollment-bulk-footer span{display:block}.enrollment-bulk-footer strong{font-size:13px}.enrollment-bulk-footer span{font-size:12px;color:var(--muted);margin-top:3px}
 .registration-check-link{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 16px;padding:13px 15px;border:1px solid #d9cdf0;border-radius:9px;background:#faf7ff}.registration-check-link strong,.registration-check-link span{display:block}.registration-check-link strong{font-size:14px;color:var(--ink)}.registration-check-link span{font-size:12px;color:var(--muted);margin-top:3px}.registration-check-link .button{flex:0 0 auto}.button.registration-check-button{color:#fff;background:#7047b8;border-color:#7047b8;box-shadow:0 3px 9px #7047b82c}.button.registration-check-button:hover{background:#5d369f;border-color:#5d369f}
-.check-label{display:flex;align-items:center;gap:10px;font-weight:400;font-size:14px}
+.check-label{display:flex;align-items:flex-start;gap:10px;font-weight:400;font-size:14px}.check-label input{margin-top:3px}.check-label small{display:block;color:var(--muted);font-weight:400;margin-top:2px}
 .attachment-row{display:grid;grid-template-columns:1fr 1.6fr 40px;gap:10px;margin-bottom:10px;align-items:end}
 .attachment-row label{font-size:12px}
 .info-box{background:#edf6f0;border:1px solid #d5e8db;color:#3b6850;font-size:13px;padding:13px 16px;border-radius:9px;margin-bottom:20px}

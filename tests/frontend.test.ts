@@ -379,6 +379,28 @@ test("announcement form locks a one-section subject to Sec 1 and saves that audi
   assert.equal(saved.target_scope,"SPECIFIC");assert.deepEqual(saved.target_sections,[1]);
 });
 
+test("admin can select, pin, and scope general news to a course", async () => {
+  const ctx=await context("admin");
+  addSubject(ctx.data.assignments,{name:"วิชาข่าวเก่า",academicYear:2568,semester:"1",sectionCount:2});
+  addSubject(ctx.data.assignments,{name:"วิชาข่าวล่าสุด",academicYear:2570,semester:"1",sectionCount:2});
+  const catalog=loadCatalog(ctx.data.assignments),course=catalog.subjects.find(row=>row.name==="วิชาข่าวล่าสุด")!;
+  renderPostForm(ctx);
+  const form=ctx.root.querySelector<HTMLFormElement>("#post-form")!,year=form.elements.namedItem("post_academic_year") as HTMLSelectElement,subject=form.elements.namedItem("subject_id") as HTMLSelectElement,audience=form.elements.namedItem("audience") as HTMLSelectElement;
+  assert.equal(year.value,"2570");assert.match(subject.textContent!,/วิชาข่าวล่าสุด/);assert.doesNotMatch(subject.textContent!,/วิชาข่าวเก่า|Object-Oriented Programming/);
+  subject.value=course.id;subject.dispatchEvent(new Event("change",{bubbles:true}));
+  assert.equal(audience.value,"ALL");assert.equal(audience.disabled,false);assert.match(ctx.root.querySelector("#targeting-note")!.textContent!,/เฉพาะนิสิตที่ลงทะเบียน/);
+  (form.elements.namedItem("pinned") as HTMLInputElement).checked=true;
+  (form.elements.namedItem("title") as HTMLInputElement).value="ข่าวปักหมุดประจำวิชา";
+  (form.elements.namedItem("content") as HTMLTextAreaElement).value="รายละเอียดสำหรับผู้เรียนวิชานี้";
+  form.dispatchEvent(new Event("submit",{bubbles:true,cancelable:true}));await flush();
+  const saved=(await repo.snapshot()).posts.find(row=>row.title==="ข่าวปักหมุดประจำวิชา")!;
+  assert.equal(saved.category,"general");assert.equal(saved.subject_id,course.id);assert.equal(saved.target_scope,"ALL");assert.equal(saved.is_pinned,true);
+  await repo.signIn("student");
+  assert.equal((await repo.listPosts({category:"general",status:"published",enrollments:[]})).rows.some(row=>row.post_id===saved.post_id),false);
+  const enrollments=await repo.saveEnrollments([{subject_id:course.id,section:1}]);
+  assert.equal((await repo.listPosts({category:"general",status:"published",enrollments})).rows.some(row=>row.post_id===saved.post_id),true);
+});
+
 test("failed post query shows an actionable retry", async () => {
   const ctx=await context(), list=repo.listPosts.bind(repo); let fail=true;
   repo.listPosts=async q=>{if(fail)throw new Error("offline");return list(q);};

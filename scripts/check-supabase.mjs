@@ -16,6 +16,7 @@ const cohortMigration = contents[migrationNames.indexOf("008_restrict_cohort_to_
 const adminPasswordMigration = contents[migrationNames.indexOf("009_require_password_for_admin.sql")];
 const externalAdminMigration = contents[migrationNames.indexOf("010_allow_external_admin_emails.sql")];
 const singleSectionMigration = contents[migrationNames.indexOf("011_force_single_section_enrollment.sql")];
+const courseNewsMigration = contents[migrationNames.indexOf("012_scope_course_news_to_enrollments.sql")];
 const seed = contents.at(-1);
 
 for (const [index,sql] of contents.entries()) {
@@ -39,6 +40,9 @@ assert.match(externalAdminMigration,/private\.is_password_session\(\)/i,"externa
 assert.match(externalAdminMigration,/as restrictive for all to authenticated/i,"external admin access gate must remain restrictive");
 assert.match(singleSectionMigration,/selected_subject\.section_count\s*=\s*1/i,"single-section enrollment must be detected in the database");
 assert.match(singleSectionMigration,/new\.section\s*=\s*1/i,"single-section enrollment must be normalized to Sec 1");
+assert.match(courseNewsMigration,/category\s*=\s*'general'\s+and\s+subject_id\s+is\s+null/i,"cohort-wide general news must remain visible without a subject");
+assert.match(courseNewsMigration,/e\.subject_id\s*=\s*posts\.subject_id/i,"course news visibility must require a matching enrollment");
+assert.match(courseNewsMigration,/posts\.target_scope\s*=\s*'ALL'\s+or\s+e\.section\s*=\s*any/i,"course news visibility must respect section targeting");
 assert.match(policies,/create policy posts_select_visible/i,"missing post visibility policy");
 assert.match(policies,/create policy progress_select_own\b/i,"progress must remain private");
 assert.match(resourcesMigration,/rename column resources_jsonb to resources/i,"assignment resources must migrate to jsonb");
