@@ -21,27 +21,38 @@ export function postCard(post: PostRow) {
 }
 export function renderPosts(ctx: Context, initialCategory: "official" | "general" | "requests" | "admin" | "approvals") {
   const admin = initialCategory==="admin", approval=initialCategory==="approvals", requests=initialCategory==="requests";
-  let boardCategory:"official"|"general"|"all"=initialCategory==="general"?"general":"official", own=false, page=1, tab="pending";
+  let boardCategory:"official"|"general"=initialCategory==="general"?"general":"official", selectedSubjectId="", own=false, page=1, tab="pending";
   let currentRows: PostRow[] = [], request = 0;
   const formRoute=ctx.user.role==="admin"?"adminPostForm":"postForm";
-  ctx.root.innerHTML=heading(requests?"คำขอประกาศของฉัน":approval?"อนุมัติประกาศ":admin?"จัดการประกาศ":"ข่าวสาร",requests?"ติดตามคำขอประกาศทางการ โดยไม่ปะปนกับข่าวที่เผยแพร่แล้ว":approval?"ตรวจสอบคำขอ ก่อนเผยแพร่ข่าวสำคัญให้เพื่อนร่วมรุ่น":admin?"จัดการเนื้อหา สถานะ และประกาศที่ปักหมุด":"เลือกดูประกาศสำคัญและข่าวสารทั่วไปของรุ่นได้ในหน้าเดียว",requests?"MY ANNOUNCEMENT REQUESTS":approval?"APPROVAL WORKFLOW":admin?"CONTENT MANAGEMENT":"NEWS & ANNOUNCEMENTS",
+  const officialSubjects=[...(ctx.catalog?.subjects??[])].filter(subject=>ctx.user.role==="admin"||ctx.enrollments?.some(row=>row.subject_id===subject.id)).sort((a,b)=>b.academicYear-a.academicYear||Number(b.semester)-Number(a.semester)||a.name.localeCompare(b.name,"th"));
+  const subjectOptions=officialSubjects.map(subject=>{const enrollment=ctx.enrollments?.find(row=>row.subject_id===subject.id);return `<option value="${e(subject.id)}">${e(subject.name)} · ปี ${subject.academicYear} · ภาค ${subject.semester}${enrollment?` · Sec ${enrollment.section}`:""}</option>`;}).join("");
+  ctx.root.innerHTML=heading(requests?"คำขอประกาศของฉัน":approval?"อนุมัติประกาศ":admin?"จัดการประกาศ":"ข่าวสาร",requests?"ติดตามคำขอประกาศทางการ โดยไม่ปะปนกับข่าวที่เผยแพร่แล้ว":approval?"ตรวจสอบคำขอ ก่อนเผยแพร่ข่าวสำคัญให้เพื่อนร่วมรุ่น":admin?"จัดการเนื้อหา สถานะ และประกาศที่ปักหมุด":"ข่าวทั่วไปสำหรับทั้งรุ่น และข่าวทางการที่แยกดูตามรายวิชาและ Sec",requests?"MY ANNOUNCEMENT REQUESTS":approval?"APPROVAL WORKFLOW":admin?"CONTENT MANAGEMENT":"NEWS & ANNOUNCEMENTS",
   '<a class="button primary" href="'+href(formRoute)+'">'+icon("plus")+' สร้างโพสต์</a>')+
-  (requests?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="rejected">ไม่อนุมัติ</button></div>':approval?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="processed">ดำเนินการแล้ว</button></div>':admin?"":'<div class="tabs"><button class="'+(boardCategory==="official"?"active":"")+'" data-category="official">ประกาศทางการ</button><button class="'+(boardCategory==="general"?"active":"")+'" data-category="general">ประกาศทั่วไป</button><button data-category="all">ทั้งหมด</button></div>')+
-  (admin?'<div class="filter-panel"><label>แสดงรายการ<select id="post-owner"><option value="all">ทั้งหมด</option><option value="mine">ประกาศของฉัน</option></select></label></div>':"")+'<div id="posts-results"></div>';
+  (requests?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="rejected">ไม่อนุมัติ</button></div>':approval?'<div class="tabs"><button class="active" data-tab="pending">รออนุมัติ</button><button data-tab="processed">ดำเนินการแล้ว</button></div>':admin?"":'<div class="tabs"><button class="'+(boardCategory==="official"?"active":"")+'" data-category="official">ประกาศทางการ</button><button class="'+(boardCategory==="general"?"active":"")+'" data-category="general">ประกาศทั่วไป</button></div>')+
+  (admin?'<div class="filter-panel"><label>แสดงรายการ<select id="post-owner"><option value="all">ทั้งหมด</option><option value="mine">ประกาศของฉัน</option></select></label></div>':requests||approval?"":`<div class="filter-panel" id="official-subject-panel" ${boardCategory==="general"?"hidden":""}><label>เลือกรายวิชาก่อนดูประกาศทางการ<select id="official-subject"><option value="">เลือกรายวิชา</option>${subjectOptions}</select><small>ระบบจะแสดงเฉพาะข่าวของวิชานี้และ Sec ที่คุณลงทะเบียน</small></label></div>`)+
+  '<div id="posts-results"></div>';
   const results=ctx.root.querySelector<HTMLElement>("#posts-results")!;
   const ownerSelect=ctx.root.querySelector<HTMLSelectElement>("#post-owner");
+  const subjectPanel=ctx.root.querySelector<HTMLElement>("#official-subject-panel"),subjectSelect=ctx.root.querySelector<HTMLSelectElement>("#official-subject");
   if(ownerSelect)ownerSelect.value=own?"mine":"all";
   const render=async()=>{
     const token=++request;
+    if(subjectPanel)subjectPanel.hidden=boardCategory!=="official";
+    if(!admin&&!approval&&!requests&&boardCategory==="official"&&!selectedSubjectId){
+      currentRows=[];
+      results.innerHTML=officialSubjects.length?empty("เลือกรายวิชาเพื่อดูประกาศทางการ","ข่าวและหมุดจะแสดงเฉพาะวิชาที่เลือก จึงไม่ปะปนกับประกาศของวิชาอื่น"):empty("ยังไม่มีรายวิชาที่ลงทะเบียน","ลงทะเบียนรายวิชาและ Sec ก่อน เพื่อดูประกาศทางการที่ตรงกับคุณ",'<a class="button primary" href="'+href("enrollment")+'">ไปหน้ารายวิชาของฉัน</a>');
+      return;
+    }
     results.innerHTML='<div class="loading" role="status">กำลังโหลดประกาศ…</div>';
     try {
     const result=await ctx.repo.listPosts({own:requests?true:own||undefined,page,pageSize:10,enrollments:ctx.user.role==="student"?ctx.enrollments:undefined,
-      ...(requests?{category:"official" as const,status:tab as "pending"|"rejected"}:approval?(tab==="pending"?{status:"pending" as const}:{processed:true}):!admin?{...(boardCategory==="all"?{}:{category:boardCategory}),status:"published" as const}:{})});
+      ...(requests?{category:"official" as const,status:tab as "pending"|"rejected"}:approval?(tab==="pending"?{status:"pending" as const}:{processed:true}):!admin?{category:boardCategory,subjectId:boardCategory==="official"?selectedSubjectId:undefined,status:"published" as const}:{})});
     if(token!==request)return;
     const pages=Math.max(1,Math.ceil(result.total/10));
     if(page>pages){page=pages;await render();return;}
     const slice=currentRows=result.rows, rows={length:result.total};
-    results.innerHTML='<div class="results-toolbar"><div><h2>'+(requests?(tab==="pending"?"กำลังรอการตรวจสอบ":"คำขอที่ไม่อนุมัติ"):own?"ประกาศของฉัน":approval?"คำขอประกาศ":"รายการประกาศ")+'</h2><small>'+rows.length+' รายการ</small></div></div>'+
+    const selectedSubject=officialSubjects.find(subject=>subject.id===selectedSubjectId);
+    results.innerHTML='<div class="results-toolbar"><div><h2>'+(requests?(tab==="pending"?"กำลังรอการตรวจสอบ":"คำขอที่ไม่อนุมัติ"):own?"ประกาศของฉัน":approval?"คำขอประกาศ":boardCategory==="official"&&selectedSubject?`ประกาศวิชา ${e(selectedSubject.name)}`:"รายการประกาศ")+'</h2><small>'+rows.length+' รายการ</small></div></div>'+
     (slice.length?(admin||approval?'<div class="table-wrap"><table class="table"><thead><tr><th>ประกาศ / ผู้เขียน</th><th>ประเภท</th><th>สถานะ</th><th>จัดการ</th></tr></thead><tbody>'+slice.map(p=>`<tr><td class="title-cell"><a href="${href("postDetail",p.post_id)}"><strong>${e(p.title)}</strong></a><small>${e(p.author_name)}${p.subject_name?` · ${e(p.subject_name)} · ${e(audienceLabel(p))}`:""}<br>${e(formatDate(p.created_at,false))}<br>เวลา ${e(formatTime(p.created_at))} น.</small></td><td>${badge(p.category==="official"?"ทางการ":"ทั่วไป",p.category)}</td><td>${badge(postStatusLabel(p),p.status)}</td><td><div class="actions">${approval&&p.status==="pending"?'<a class="button small" href="'+href("postDetail",p.post_id)+'">ตรวจสอบ</a><button class="button small primary" data-approve="'+e(p.post_id)+'">อนุมัติ</button>':'<a class="button small" href="'+href("adminPostForm",p.post_id)+'" aria-label="แก้ไข '+e(p.title)+'">'+icon("edit")+'</a>'+(p.status==="published"?'<button class="button small" data-pin="'+e(p.post_id)+'" aria-label="'+(p.is_pinned?"เลิกปักหมุด":"ปักหมุด")+' '+e(p.title)+'">'+icon("pin")+(p.is_pinned?" เลิกปักหมุด":"")+'</button>':"")+'<button class="button small danger" data-delete="'+e(p.post_id)+'" aria-label="ลบ '+e(p.title)+'" title="ลบประกาศ">'+icon("trash")+' ลบ</button>'}</div></td></tr>`).join("")+'</tbody></table></div>':'<div class="post-grid">'+slice.map(postCard).join("")+"</div>"):empty(approval?"ไม่มีคำขอในรายการนี้":"ยังไม่มีประกาศที่ตรงกับตัวกรอง","ยังไม่มีข่าวสารในหมวดนี้ กรุณากลับมาตรวจสอบใหม่"))+
     `<div class="pagination"><span>หน้า ${page} จาก ${pages} · หน้าละ 10 รายการ</span><div class="actions"><button class="button small" data-page="-1" ${page===1?"disabled":""}>${icon("left")} ก่อนหน้า</button><button class="button small" data-page="1" ${page===pages?"disabled":""}>ถัดไป ${icon("right")}</button></div></div>`;
     syncPostCopyControls(results);
@@ -51,11 +62,12 @@ export function renderPosts(ctx: Context, initialCategory: "official" | "general
     }
   };
   ctx.root.querySelector<HTMLSelectElement>("#post-owner")?.addEventListener("change",event=>{own=(event.target as HTMLSelectElement).value==="mine";page=1;render();});
+  subjectSelect?.addEventListener("change",()=>{selectedSubjectId=subjectSelect.value;page=1;render();});
   ctx.root.addEventListener("click",event=>{
     const b=(event.target as Element).closest<HTMLButtonElement>("button");if(!b)return;
     if(b.dataset.imagePost){const post=currentRows.find(post=>post.post_id===b.dataset.imagePost);if(post)openPostImage(post);return;}
     if(b.hasAttribute("data-expand-post")){const copy=b.closest<HTMLElement>(".post-card-copy"),summary=copy?.querySelector<HTMLElement>("[data-post-summary]"),full=copy?.querySelector<HTMLElement>("[data-post-full]");if(!copy||!summary||!full)return;const expanded=b.getAttribute("aria-expanded")==="true";if(!expanded&&(b.dataset.expandPost==="detail"||exceedsTenRenderedLines(copy,full))){navigate("postDetail",b.dataset.postId);return;}summary.hidden=!expanded;full.hidden=expanded;b.setAttribute("aria-expanded",String(!expanded));b.textContent=expanded?"ดูเพิ่มเติม":"ย่อ";return;}
-    if(b.dataset.category){boardCategory=b.dataset.category as "official"|"general"|"all";page=1;ctx.root.querySelectorAll("[data-category]").forEach(el=>el.classList.toggle("active",el===b));render();}
+    if(b.dataset.category){boardCategory=b.dataset.category as "official"|"general";page=1;ctx.root.querySelectorAll("[data-category]").forEach(el=>el.classList.toggle("active",el===b));render();}
     if(b.dataset.tab){tab=b.dataset.tab;page=1;ctx.root.querySelectorAll("[data-tab]").forEach(el=>el.classList.toggle("active",el===b));render();}
     if(b.dataset.page){page+=Number(b.dataset.page);render();}
     if(b.hasAttribute("data-retry"))void render();

@@ -76,6 +76,7 @@ export class DemoRepository implements Repository {
     const user = await this.user(), data = await this.snapshot();
     const rows = data.posts.filter(p =>
       (!query.category || p.category === query.category) &&
+      (!query.subjectId || p.subject_id === query.subjectId) &&
       (!query.status || p.status === query.status) &&
       (!query.own || p.author_id === user.uid) &&
       (!query.processed || !!p.approved_by || p.status === "rejected") &&

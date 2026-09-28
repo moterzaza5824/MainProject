@@ -52,7 +52,7 @@ const taskInput = (): AssignmentInput => ({
 
 test("page data loading avoids unrelated database work", () => {
   assert.deepEqual(pageDataRequirements("official", "student", "supabase"), {
-    snapshot: false, catalog: false, enrollments: true, post: false, ownPosts: false
+    snapshot: false, catalog: true, enrollments: true, post: false, ownPosts: false
   });
   assert.deepEqual(pageDataRequirements("dashboard", "student", "supabase"), {
     snapshot: true, catalog: true, enrollments: true, post: false, ownPosts: false
@@ -220,22 +220,34 @@ test("post board fetches paginated repository rows rather than dashboard subset"
 });
 
 test("published news boards are separated from the student's pending request page", async () => {
-  const ctx=await context("student");
+  const ctx=await context("student"),catalog=loadCatalog(ctx.data.assignments);
+  const oop=catalog.subjects.find(row=>row.id==="seed-subject-1")!,softwareEngineering=catalog.subjects.find(row=>row.id==="seed-subject-2")!;
+  saveEnrollment(ctx.user.uid,oop,1);saveEnrollment(ctx.user.uid,softwareEngineering,1);
+  ctx.catalog=catalog;ctx.enrollments=loadEnrollments(ctx.user.uid);
+  let queries=0,lastSubject:string|undefined;const list=repo.listPosts.bind(repo);
+  repo.listPosts=async query=>{queries++;lastSubject=query.subjectId;return list(query);};
   renderPosts(ctx,"official");await flush();
   assert.match(ctx.root.querySelector("h1")!.textContent!,/ข่าวสาร/);
   assert.equal(ctx.root.querySelector('[data-category="official"]')?.classList.contains("active"),true);
+  assert.equal(queries,0);assert.equal(ctx.root.querySelectorAll(".post-card").length,0);
+  assert.match(ctx.root.textContent!,/เลือกรายวิชาเพื่อดูประกาศทางการ/);
+  const subject=ctx.root.querySelector<HTMLSelectElement>("#official-subject")!;
+  assert.equal(subject.options[0].textContent,"เลือกรายวิชา");
+  assert.equal([...subject.options].some(option=>/ทุกวิชา/.test(option.textContent??"")),false);
+  subject.value=oop.id;subject.dispatchEvent(new Event("change",{bubbles:true}));await flush();
+  assert.equal(lastSubject,oop.id);assert.match(ctx.root.textContent!,/แจ้งเปลี่ยนห้องเรียนปฏิบัติการ OOP/);
+  assert.doesNotMatch(ctx.root.textContent!,/เตรียมตัวสอบกลางภาค/);
   ctx.root.querySelector<HTMLButtonElement>('[data-category="general"]')!.click();await flush();
   assert.equal(ctx.root.querySelector('[data-category="general"]')?.classList.contains("active"),true);
+  assert.equal(ctx.root.querySelector<HTMLElement>("#official-subject-panel")!.hidden,true);
   assert.equal(ctx.root.querySelector("#post-owner"),null);
   assert.equal(ctx.root.querySelector(".section-filter"),null);
   assert.doesNotMatch(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
   assert.equal(ctx.root.querySelectorAll(".badge.pending").length,0);
-  ctx.root.querySelector<HTMLButtonElement>('[data-category="all"]')!.click();await flush();
-  assert.equal(ctx.root.querySelector('[data-category="all"]')?.classList.contains("active"),true);
-  assert.match(ctx.root.textContent!,/เตรียมตัวสอบกลางภาค/);
+  assert.equal(ctx.root.querySelector('[data-category="all"]'),null);
   assert.match(ctx.root.textContent!,/ชวนทบทวนก่อนสอบ/);
   assert.doesNotMatch(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
-  assert.ok(ctx.root.querySelector(".badge.official"));assert.ok(ctx.root.querySelector(".badge.general"));
+  assert.equal(ctx.root.querySelector(".badge.official"),null);assert.ok(ctx.root.querySelector(".badge.general"));
   renderPosts(ctx,"requests");await flush();
   assert.match(ctx.root.textContent!,/คำขอประกาศของฉัน/);
   assert.match(ctx.root.textContent!,/ขอประกาศกิจกรรม Workshop Git/);
@@ -400,9 +412,11 @@ test("admin can pin cohort-wide general news without course targeting", async ()
 });
 
 test("failed post query shows an actionable retry", async () => {
-  const ctx=await context(), list=repo.listPosts.bind(repo); let fail=true;
+  const ctx=await context(),catalog=loadCatalog(ctx.data.assignments),oop=catalog.subjects.find(row=>row.id==="seed-subject-1")!, list=repo.listPosts.bind(repo); let fail=true;
+  saveEnrollment(ctx.user.uid,oop,1);ctx.catalog=catalog;ctx.enrollments=loadEnrollments(ctx.user.uid);
   repo.listPosts=async q=>{if(fail)throw new Error("offline");return list(q);};
   renderPosts(ctx,"official"); await flush();
+  const subject=ctx.root.querySelector<HTMLSelectElement>("#official-subject")!;subject.value=oop.id;subject.dispatchEvent(new Event("change",{bubbles:true}));await flush();
   assert.ok(ctx.root.querySelector("[data-retry]"));
   fail=false; ctx.root.querySelector<HTMLButtonElement>("[data-retry]")!.click(); await flush();
   assert.ok(ctx.root.querySelector(".post-card"));

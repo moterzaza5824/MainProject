@@ -8,7 +8,7 @@
 |---|---|---|
 | บัญชี | auth/login/, auth/access-denied/ | Admin ผ่านอีเมลทั่วไป/Password เท่านั้นพร้อมปุ่มแสดง/ซ่อนรหัส, นิสิตผ่าน Google `6802xxxx@up.ac.th`, แจ้งสิทธิ์, เปลี่ยนบัญชี |
 | ภาพรวม | dashboard/, admin/dashboard/ | สรุปงาน/คำขอ และข่าวประชาสัมพันธ์ทั่วไปของทั้งรุ่น |
-| ประกาศ | posts/official/, posts/general/ | ข่าวทางการกรองตามรายวิชา/Sec ที่ลงทะเบียน; ข่าวทั่วไปแสดงทั้งรุ่น; แบ่งหน้า |
+| ประกาศ | posts/official/, posts/general/ | ข่าวทางการยังไม่แสดงจนกว่าจะเลือกหนึ่งรายวิชา และกรองตาม Sec ที่ลงทะเบียน; ไม่มีมุมมองรวมทุกวิชา; ข่าวทั่วไปแสดงทั้งรุ่น; แบ่งหน้า |
 | คำขอของฉัน | posts/requests/ | คำขอประกาศทางการที่รออนุมัติ/ไม่อนุมัติ แยกจากหน้าข่าว |
 | เขียน/อ่าน | posts/create/, posts/detail/?id=... | ข่าวทั่วไปไม่ผูกวิชาและ Sec; ข่าวทางการบังคับเลือกหนึ่งวิชาและทุก Sec/หนึ่ง Sec; CRUD, pin, preview, ลิงก์, ผลอนุมัติ |
 | งาน | assignments/, assignments/detail/?id=... | ตัวกรอง, list/calendar, สถานะยังไม่เสร็จ/เสร็จแล้ว, note |
@@ -25,7 +25,7 @@
 ## ตรวจสอบแล้ว
 
 - TypeScript strict และ production build
-- ทดสอบอัตโนมัติ 34 รายการ: สิทธิ์, กฎบัญชี `6802`, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, การแยกข่าวทั่วไป/ทางการและหมุดหน้า Dashboard, optimistic concurrency, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment รวมการเลือก Sec 1 และปีล่าสุดอัตโนมัติ, ตัวกรองปีในฟอร์มงาน, master data, page render, sidebar preference
+- ทดสอบอัตโนมัติ 34 รายการ: สิทธิ์, กฎบัญชี `6802`, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, การแยกข่าวทั่วไป/ทางการ, การบังคับเลือกรายวิชาก่อนดูข่าวทางการ, หมุดหน้า Dashboard, optimistic concurrency, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment รวมการเลือก Sec 1 และปีล่าสุดอัตโนมัติ, ตัวกรองปีในฟอร์มงาน, master data, page render, sidebar preference
 - DOM tests ใช้ happy-dom ไม่ใช่ภาพจริงหรือ E2E บน Chrome
 - ทดสอบ hidden/disabled ของฟอร์มด้วย DOM; การแสดงผล responsive/CSS ยังต้องตรวจบนอุปกรณ์จริงก่อน production
 - Supabase DB/RLS ที่ deploy จริงผ่าน migration sync, lint และ contract checks แล้ว; Google OAuth ทดสอบบน local/Vercel แล้ว แต่ยังไม่ได้ทดสอบหลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน

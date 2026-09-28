@@ -39,7 +39,7 @@ export interface ProgressRow {
 export type PostInput = Pick<PostRow, "title" | "content" | "category" | "image_url" | "subject_id" | "subject_name" | "target_scope" | "target_sections" | "attachments" | "is_pinned">;
 export type AssignmentInput = Pick<AssignmentRow, "subject_id" | "subject_name" | "academic_year" | "semester" | "title" | "description" | "submission_channel" | "schedule_mode" | "due_dates" | "resources">;
 export interface Snapshot { users: UserRow[]; posts: PostRow[]; assignments: AssignmentRow[]; progress: ProgressRow[]; post_counts?: { pending: number; published: number } }
-export interface PostQuery { category?: PostCategory; section?: Section; own?: boolean; status?: PostStatus; processed?: boolean; enrollments?: EnrollmentRow[]; page?: number; pageSize?: number }
+export interface PostQuery { category?: PostCategory; subjectId?: string; section?: Section; own?: boolean; status?: PostStatus; processed?: boolean; enrollments?: EnrollmentRow[]; page?: number; pageSize?: number }
 export interface PostPage { rows: PostRow[]; total: number }
 export interface Repository {
   mode: "demo" | "supabase";

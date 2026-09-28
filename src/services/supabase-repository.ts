@@ -153,6 +153,7 @@ export class SupabaseRepository implements Repository {
     const size = Math.min(15, Math.max(1, options.pageSize ?? 10)), page = Math.max(1, options.page ?? 1);
     let query = this.client.from("posts").select(POST_FIELDS, { count: "exact" });
     if (options.category) query = query.eq("category", options.category);
+    if (options.subjectId) query = query.eq("subject_id", options.subjectId);
     if (options.status) query = query.eq("status", options.status);
     if (options.own) query = query.eq("author_id", user.uid);
     if (options.processed) query = query.or("approved_by.not.is.null,status.eq.rejected");
