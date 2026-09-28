@@ -22,7 +22,7 @@ VITE_* จะอยู่ใน JavaScript ฝั่งผู้ใช้ ใส
 |---|---|---|
 | users | uid, email, student_id, full_name, role, created_at, updated_at | uid UUID = auth.users.id; student/admin/pending_admin; student_id ว่างได้เฉพาะบัญชีผู้ดูแลภายนอก; unique email |
 | subjects | subject_id, name, academic_year, semester, section_count, created_by, created_at, updated_at | UUID PK; ชื่อไม่ซ้ำในปี/ภาคเรียนเดียวกัน |
-| enrollments | enrollment_id, uid, subject_id, academic_year, semester, section, created_at, updated_at | หนึ่ง Sec ต่อ user/subject; section ต้องอยู่ในช่วงของวิชา |
+| enrollments | enrollment_id, uid, subject_id, academic_year, semester, section, created_at, updated_at | หนึ่ง Sec ต่อ user/subject; section ต้องอยู่ในช่วงของวิชา และวิชาที่มี Sec เดียวถูกกำหนดเป็น Sec 1 โดย trigger |
 | posts | post_id, author_id, author_name, title, content, category, status, is_pinned, image_url, subject_id, subject_name, target_scope, target_sections, attachments, approved_by, created_at, updated_at | UUID PK; author/reviewer FK users; official/general; published/pending/rejected |
 | assignments | assignment_id, created_by, subject_id, subject_name, academic_year, semester, title, description, submission_channel, schedule_mode, due_dates, resources, created_at, updated_at | UUID PK; creator/subject FK; UNIFIED/SPLIT |
 | user_task_progress | id, uid, assignment_id, status, note, updated_at | id text uid_assignmentId; UNIQUE(uid,assignment_id); FK; TODO/DONE |

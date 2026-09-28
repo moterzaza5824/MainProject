@@ -546,6 +546,18 @@ test("student enrollment stores one section per course and filters assignments a
   assert.equal(updated.length,catalog.subjects.length);assert.equal(updated.find(row=>row.subject_id===oop.id)?.section,2);
 });
 
+test("single-section courses select and save Sec 1 automatically", async () => {
+  const ctx=await context("student");
+  addSubject(ctx.data.assignments,{name:"วิชาที่มี Sec เดียว",academicYear:2569,semester:"1",sectionCount:1});
+  const catalog=loadCatalog(ctx.data.assignments),subject=catalog.subjects.find(row=>row.name==="วิชาที่มี Sec เดียว")!;
+  const saved=saveEnrollment(ctx.user.uid,subject,99);
+  assert.equal(saved.find(row=>row.subject_id===subject.id)?.section,1);
+  ctx.catalog=catalog;ctx.enrollments=saved;renderEnrollment(ctx);
+  const select=ctx.root.querySelector<HTMLSelectElement>(`[data-enrollment-section="${subject.id}"]`)!;
+  assert.equal(select.value,"1");assert.equal(select.disabled,true);assert.match(select.textContent!,/Sec 1 \(อัตโนมัติ\)/);
+  assert.match(ctx.root.textContent!,/วิชาที่มี Sec เดียวระบบจะเลือก Sec 1 ให้/);
+});
+
 test("student dashboard summarizes unsubmitted work and prioritizes score-saving deadlines", async () => {
   const ctx=await context("student");
   const now=Date.now(),source=ctx.data.assignments.slice(0,3);

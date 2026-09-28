@@ -13,7 +13,7 @@
 | เขียน/อ่าน | posts/create/, posts/detail/?id=... | CRUD ของตน, preview, ลิงก์, ผลอนุมัติ |
 | งาน | assignments/, assignments/detail/?id=... | ตัวกรอง, list/calendar, สถานะยังไม่เสร็จ/เสร็จแล้ว, note |
 | ปฏิทิน | calendar/ | เปลี่ยนเดือน, เส้นตาย Section, mobile agenda |
-| รายวิชาของฉัน | enrollment/ | ลงทะเบียนรายวิชาและ Sec แบบรายวิชาหรือบันทึกรวม |
+| รายวิชาของฉัน | enrollment/ | ลงทะเบียนรายวิชาและ Sec แบบรายวิชาหรือบันทึกรวม; วิชาที่เปิด Sec เดียวกำหนดเป็น Sec 1 อัตโนมัติ |
 | โปรไฟล์ | profile/ | บัญชี, ประกาศของฉัน, ออกจากระบบ |
 | อนุมัติ | admin/approvals/ | อนุมัติ/ปฏิเสธ/เผยแพร่เป็นทั่วไป |
 | จัดการประกาศ | admin/posts/, admin/posts/form/?id=... | CRUD, pin, ตรวจคำขอ |
@@ -25,7 +25,7 @@
 ## ตรวจสอบแล้ว
 
 - TypeScript strict และ production build
-- ทดสอบอัตโนมัติ 31 รายการ: สิทธิ์, กฎบัญชี `6802`, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, optimistic concurrency, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment, master data, page render, sidebar preference
+- ทดสอบอัตโนมัติ 32 รายการ: สิทธิ์, กฎบัญชี `6802`, migration สถานะและลิงก์เอกสารเดิม, private progress/upsert, moderation, optimistic concurrency, pagination, error retry, Section/urgency, HTML/URL safety, calendar, form mode, enrollment รวมการเลือก Sec 1 อัตโนมัติ, master data, page render, sidebar preference
 - DOM tests ใช้ happy-dom ไม่ใช่ภาพจริงหรือ E2E บน Chrome
 - ทดสอบ hidden/disabled ของฟอร์มด้วย DOM; การแสดงผล responsive/CSS ยังต้องตรวจบนอุปกรณ์จริงก่อน production
 - Supabase DB/RLS ที่ deploy จริงผ่าน migration sync, lint และ contract checks แล้ว; Google OAuth ทดสอบบน local/Vercel แล้ว แต่ยังไม่ได้ทดสอบหลายบัญชีจริง, Realtime หรือโหลดพร้อมกัน
@@ -33,6 +33,6 @@
 ## ข้อจำกัด
 
 - repository รองรับ demo เมื่อกำหนด `VITE_DATA_MODE=demo` อย่างชัดเจนเท่านั้น ส่วนเครื่องพัฒนานี้ตั้ง `.env.local` เป็น `VITE_DATA_MODE=supabase` แล้ว รายวิชา/การลงทะเบียน/ประกาศ/งาน/ความคืบหน้าจึงอ่านเขียนฐานข้อมูลจริง
-- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase project แล้ว และ migration 001–010 ตรงกันทั้ง local/remote
+- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase project แล้ว และ migration 001–011 ตรงกันทั้ง local/remote
 - ไม่มี chat, grades, upload, SMS หรือฟีเจอร์ใหม่จากข้อเสนอแนะ
 - DONE ไม่นับเป็นงานด่วน; เลยกำหนดแยกจากงานที่จะถึงกำหนดใน 48 ชั่วโมง

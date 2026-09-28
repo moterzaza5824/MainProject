@@ -25,9 +25,10 @@ export function updateEnrollmentSubject(subject:SubjectCatalogRow):void {
 export function saveEnrollments(uid:string,selections:{subject:SubjectCatalogRow;section:number}[]):EnrollmentRow[] {
   if(!selections.length)throw new Error("ไม่มีรายวิชาให้บันทึก");
   if(new Set(selections.map(row=>row.subject.id)).size!==selections.length)throw new Error("พบรายวิชาซ้ำ กรุณาลองใหม่");
-  selections.forEach(({subject,section})=>{if(!Number.isInteger(section)||section<1||section>subject.sectionCount)throw new Error(`กรุณาเลือก Sec ของ ${subject.name} ให้ถูกต้อง`);});
-  const rows=read(),now=new Date().toISOString(),subjectIds=new Set(selections.map(row=>row.subject.id));
-  const saved=selections.map(({subject,section})=>{const old=rows.find(row=>row.uid===uid&&row.subject_id===subject.id);return {enrollment_id:old?.enrollment_id??crypto.randomUUID(),uid,subject_id:subject.id,academic_year:subject.academicYear,semester:subject.semester,section,created_at:old?.created_at??now,updated_at:now};});
+  const normalized=selections.map(({subject,section})=>({subject,section:subject.sectionCount===1?1:section}));
+  normalized.forEach(({subject,section})=>{if(!Number.isInteger(section)||section<1||section>subject.sectionCount)throw new Error(`กรุณาเลือก Sec ของ ${subject.name} ให้ถูกต้อง`);});
+  const rows=read(),now=new Date().toISOString(),subjectIds=new Set(normalized.map(row=>row.subject.id));
+  const saved=normalized.map(({subject,section})=>{const old=rows.find(row=>row.uid===uid&&row.subject_id===subject.id);return {enrollment_id:old?.enrollment_id??crypto.randomUUID(),uid,subject_id:subject.id,academic_year:subject.academicYear,semester:subject.semester,section,created_at:old?.created_at??now,updated_at:now};});
   write([...rows.filter(row=>row.uid!==uid||!subjectIds.has(row.subject_id)),...saved]);
   return loadEnrollments(uid);
 }
