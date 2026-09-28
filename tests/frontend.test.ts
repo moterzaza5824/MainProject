@@ -120,6 +120,10 @@ test("password login is admin-only and Google is presented as student login", as
   assert.ok(document.querySelector("#login-form"));
   assert.ok(document.querySelector("#google-login"));
   assert.match(document.body.textContent!,/Google Login ให้สิทธิ์นิสิตเท่านั้น/);
+  const password=document.querySelector<HTMLInputElement>('[name="password"]')!,toggle=document.querySelector<HTMLButtonElement>(".password-toggle")!;
+  password.value="รหัสทดสอบ";toggle.click();
+  assert.equal(password.type,"text");assert.equal(password.value,"รหัสทดสอบ");assert.equal(toggle.getAttribute("aria-pressed"),"true");assert.match(toggle.textContent!,/ซ่อน/);
+  toggle.click();assert.equal(password.type,"password");assert.equal(toggle.getAttribute("aria-pressed"),"false");
 });
 
 test("official approval, stale review, and student re-edit obey moderation lifecycle", async () => {
@@ -465,6 +469,17 @@ test("assignment editor publishes one-section subjects to the whole course witho
   assert.ok(saved.due_dates.all);assert.equal(saved.due_dates.sec_1,undefined);
 });
 
+test("assignment editor filters subjects by academic year and defaults to the latest year", async () => {
+  const ctx=await context("admin");
+  addSubject(ctx.data.assignments,{name:"วิชาเก่าสำหรับทดสอบ",academicYear:2568,semester:"1",sectionCount:2});
+  addSubject(ctx.data.assignments,{name:"วิชาใหม่สำหรับทดสอบ",academicYear:2570,semester:"1",sectionCount:2});
+  renderAssignmentForm(ctx);
+  const form=ctx.root.querySelector<HTMLFormElement>("#assignment-form")!,year=form.elements.namedItem("academic_year_filter") as HTMLSelectElement,subject=form.elements.namedItem("subject_id") as HTMLSelectElement;
+  assert.equal(year.value,"2570");assert.match(subject.textContent!,/วิชาใหม่สำหรับทดสอบ/);assert.doesNotMatch(subject.textContent!,/วิชาเก่าสำหรับทดสอบ|Object-Oriented Programming/);
+  year.value="2568";year.dispatchEvent(new Event("change",{bubbles:true}));
+  assert.equal(subject.value,"");assert.match(subject.textContent!,/วิชาเก่าสำหรับทดสอบ/);assert.doesNotMatch(subject.textContent!,/วิชาใหม่สำหรับทดสอบ/);
+});
+
 test("assignment details show meaningful resource names", async () => {
   const ctx=await context("student");
   win.location.href="http://localhost:5173/pages/assignments/detail/?id=oop-lab4";
@@ -527,7 +542,10 @@ test("student enrollment stores one section per course and filters assignments a
   ctx.enrollments=enrollments;renderEnrollment(ctx);
   assert.match(ctx.root.textContent!,/ลงทะเบียนแล้ว 1 วิชา/);assert.match(ctx.root.textContent!,/Sec 1/);
   const registrationLink=ctx.root.querySelector<HTMLAnchorElement>('a[href="https://reg.up.ac.th/"]')!;
-  assert.ok(registrationLink);assert.equal(registrationLink.target,"_blank");assert.ok(registrationLink.classList.contains("button"));assert.match(registrationLink.textContent!,/ตรวจสอบ Sec/);
+  assert.ok(registrationLink);assert.equal(registrationLink.target,"_blank");assert.ok(registrationLink.classList.contains("button"));assert.ok(registrationLink.classList.contains("registration-check-button"));assert.match(registrationLink.textContent!,/ตรวจสอบ Sec/);
+  const yearSelect=ctx.root.querySelector<HTMLSelectElement>("#enrollment-year")!;
+  assert.equal(yearSelect.value,String(Math.max(...catalog.subjects.map(row=>row.academicYear))));
+  yearSelect.value="ALL";yearSelect.dispatchEvent(new Event("change",{bubbles:true}));assert.equal(yearSelect.value,"ALL");
   assert.doesNotMatch(ctx.root.textContent!,/ภาคฤดูร้อน/);
   const other=catalog.subjects.find(row=>row.id!==oop.id)!;
   const otherSection=ctx.root.querySelector<HTMLSelectElement>(`[data-enrollment-section="${other.id}"]`)!;

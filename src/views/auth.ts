@@ -13,7 +13,7 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
         <input name="username" ${repo.mode === "demo" ? "" : 'type="email"'} autocomplete="username" required placeholder="${repo.mode === "demo" ? "admin" : "admin@example.com"}">
       </label>
       <label class="field">Password
-        <input name="password" type="password" autocomplete="current-password" required placeholder="กรอก Password">
+        <span class="password-input-wrap"><input name="password" type="password" autocomplete="current-password" required placeholder="กรอก Password"><button class="password-toggle" type="button" aria-label="แสดงรหัสผ่าน" aria-pressed="false">แสดง</button></span>
       </label>
       <button class="button primary" type="submit">${icon("user")} เข้าสู่ระบบผู้ดูแล</button>
     </form>
@@ -37,6 +37,16 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
     history.replaceState(null,"",location.pathname);
   }
   const form = root.querySelector<HTMLFormElement>("#login-form");
+  const password = form?.elements.namedItem("password") as HTMLInputElement | null;
+  const passwordToggle = form?.querySelector<HTMLButtonElement>(".password-toggle");
+  if(password&&passwordToggle)passwordToggle.onclick=()=>{
+    const visible=password.type==="text";
+    password.type=visible?"password":"text";
+    passwordToggle.textContent=visible?"แสดง":"ซ่อน";
+    passwordToggle.setAttribute("aria-label",visible?"แสดงรหัสผ่าน":"ซ่อนรหัสผ่าน");
+    passwordToggle.setAttribute("aria-pressed",String(!visible));
+    password.focus();
+  };
   if (form) form.onsubmit = event => {
     event.preventDefault();
     if (error) error.textContent = "";
