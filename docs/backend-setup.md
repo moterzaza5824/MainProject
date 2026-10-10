@@ -80,7 +80,9 @@ npx supabase db query --linked --file tests/e2e/access-requests-rls-smoke.sql
 
 `access_requests` เก็บ uid, สถานะ, เวลาส่ง, ผู้ตรวจ และเวลาตรวจ ชื่อ/อีเมลอ่านจาก profile ที่สร้างจาก Auth ไม่รับอีเมลจากแบบฟอร์ม การส่งคำขอและตรวจใช้ RPC `request_app_access()` / `review_app_access()` เท่านั้น ผู้ใช้ที่รอ/ถูกปฏิเสธอ่านได้เฉพาะ profile และคำขอของตนเอง ไม่มีสิทธิ์ในตารางแอป ส่วนผู้ตรวจต้องเป็น Admin ที่เข้าสู่ระบบด้วย Password
 
-migration 014 ผ่านการทดสอบ PostgreSQL/RLS ในเครื่องแล้ว แต่ยังไม่ได้ใช้กับ Supabase ที่เชื่อมอยู่ในงานแก้ไขนี้ ต้องตรวจ Google OAuth ด้วยบัญชีภายนอกจริงหลัง deploy
+migration 014 ใช้กับ Supabase ที่เชื่อมอยู่แล้วเมื่อ 10 ตุลาคม 2026 และผ่าน `access-requests-rls-smoke.sql` พร้อม `supabase-rls-smoke.sql` บนฐานข้อมูลจริง ทั้งสองชุด rollback ข้อมูลทดสอบทั้งหมด ยังต้องตรวจ Google OAuth ด้วยบัญชีภายนอกจริงผ่านเบราว์เซอร์
+
+Production บน `se68-hub.vercel.app` deploy ฟีเจอร์นี้แล้ว หลังปลด resource `supabase-fuchsia-diamond` ที่สถานะ Suspended ออกจากโปรเจกต์ Vercel (ไม่ได้ลบ resource) เว็บใช้ฐานข้อมูลเดิมผ่าน `VITE_SUPABASE_URL` และ `VITE_SUPABASE_ANON_KEY` ที่ตั้งแยกไว้ การเชื่อม resource ที่ถูกระงับกลับอาจทำให้ deployment ล้มเหลวด้วย `Resource provisioning failed`
 
 ## 4. เปิดโหมด Supabase ใน frontend
 

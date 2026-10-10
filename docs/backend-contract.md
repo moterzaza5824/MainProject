@@ -1,6 +1,6 @@
 # สัญญาเชื่อม Backend / Database
 
-สัญญานี้ถูกนำไปสร้างเป็น migrations ใน `supabase/migrations/` โดย migration 001–013 มีบันทึกการ deploy พร้อม seed ไปยัง Supabase project แล้ว ส่วน migration 014 สำหรับ Google ภายนอกเพิ่มในงานแก้ไขนี้และยังไม่ได้ deploy; ผ่านการทดสอบ PostgreSQL/RLS ในเครื่อง แต่ต้องทดสอบ Google OAuth ภายนอกจริงหลังนำขึ้นใช้งาน
+สัญญานี้ถูกนำไปสร้างเป็น migrations ใน `supabase/migrations/` โดย migration 001–014 deploy ไปยัง Supabase project แล้ว เมื่อ 10 ตุลาคม 2026 ได้ใช้ migration 014 สำหรับ Google ภายนอกและผ่าน smoke tests ของคำขอเข้าใช้งานและ RLS เดิมบนฐานข้อมูลจริง โดย rollback ข้อมูลทดสอบทั้งหมด ยังต้องทดสอบ Google OAuth ภายนอกจริงผ่านเบราว์เซอร์
 
 ## เปิดโหมดจริงเมื่อ backend พร้อม
 
@@ -81,7 +81,7 @@ review ใช้ conditional update เฉพาะ pending; savePost มี upd
 - DB กำหนด `created_by` และคง identity/audit fields เอง; progress เขียนได้เฉพาะ assignment ที่ RLS อนุญาตให้ผู้ใช้นั้นเห็น
 - การแก้ assignment ใช้ `updated_at` เป็น optimistic concurrency guard เพื่อไม่เขียนทับการแก้จากอีกหน้าจอ
 - remote-safe RLS smoke test จำลอง 2 students + 1 admin ใน transaction และ rollback หลังตรวจ private progress, pending post, role และ owner fields
-- profile provisioning, constraint และ restrictive RLS ให้สิทธิ์ `6802xxxx@up.ac.th` อัตโนมัติ และ Google ภายนอกเฉพาะหลังแอดมินอนุมัติ (migration 014 ยังไม่ได้ deploy ในงานแก้ไขนี้)
+- profile provisioning, constraint และ restrictive RLS ให้สิทธิ์ `6802xxxx@up.ac.th` อัตโนมัติ และ Google ภายนอกเฉพาะหลังแอดมินอนุมัติ (migration 014 deploy แล้ว)
 - adapter สำหรับ subjects/enrollments รวมถึง posts/assignments/progress
 
 ## ยังต้องทำก่อน Production

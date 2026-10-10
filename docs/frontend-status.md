@@ -35,7 +35,7 @@
 ## ข้อจำกัด
 
 - repository รองรับ demo เมื่อกำหนด `VITE_DATA_MODE=demo` อย่างชัดเจนเท่านั้น ส่วนเครื่องพัฒนานี้ตั้ง `.env.local` เป็น `VITE_DATA_MODE=supabase` แล้ว รายวิชา/การลงทะเบียน/ประกาศ/งาน/ความคืบหน้าจึงอ่านเขียนฐานข้อมูลจริง
-- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase project แล้ว และ migration 001–013 ตรงกันทั้ง local/remote
-- migration 014 สำหรับคำขอ Google ภายนอกผ่านการทดสอบ PostgreSQL/RLS ในเครื่อง แต่ยังไม่ได้ deploy ไป Supabase ในงานแก้ไขนี้; ใช้ migration ก่อน deploy frontend และทดสอบ OAuth ภายนอกจริง
+- migrations, trigger, seed และ RLS ถูก deploy ไปยัง Supabase project แล้ว และ migration 001–014 ตรงกันทั้ง local/remote
+- migration 014 สำหรับคำขอ Google ภายนอก deploy ไป Supabase แล้วเมื่อ 10 ตุลาคม 2026 และผ่าน smoke tests คำขอ/อนุมัติและ RLS เดิมบนฐานข้อมูลจริงโดย rollback ข้อมูลทดสอบทั้งหมด หน้า Request และหน้าอนุมัติขึ้น production แล้ว ยังต้องทดสอบ OAuth ภายนอกจริงผ่านเบราว์เซอร์
 - ไม่มี chat, grades, upload, SMS หรือฟีเจอร์ใหม่จากข้อเสนอแนะ
 - DONE ไม่นับเป็นงานด่วน; เลยกำหนดแยกจากงานที่จะถึงกำหนดใน 48 ชั่วโมง
