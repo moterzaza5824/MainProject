@@ -12,6 +12,7 @@ import { renderAssignmentForm, renderPostForm } from "./views/forms";
 import { renderCatalog } from "./views/catalog";
 import { renderEnrollment } from "./views/enrollment";
 import { loadPageData } from "./services/page-data";
+import { renderAccessRequest, renderAdminAccessRequests } from "./views/access";
 async function bootstrap() {
   const root=document.querySelector<HTMLElement>("#app")!;
   root.innerHTML='<div class="loading" role="status">กำลังเตรียมพื้นที่ของคุณ…</div>';
@@ -19,19 +20,24 @@ async function bootstrap() {
     const repo=await getRepository();
     const path=location.pathname.replace(/index\.html$/,"").replace(/\/?$/,"/");
     const route=(Object.keys(routes) as RouteName[]).find(name=>path===href(name))??"login";
-    if(route==="denied"){renderAuth(root,repo,true);return;}
     const user=await repo.currentUser();
     const stopAuthObserver=repo.onAuthStateChange(signedIn=>{
       if(!signedIn&&route!=="login")location.replace(href("login"));
     });
     window.addEventListener("pagehide",stopAuthObserver,{once:true});
+    if(user?.role === "pending_member") {
+      if(route !== "accessRequest") { location.replace(href("accessRequest")); return; }
+      await renderAccessRequest(root,repo,user); return;
+    }
+    if(route === "accessRequest") { location.replace(href(user ? "dashboard" : "login")); return; }
+    if(route==="denied"){renderAuth(root,repo,true);return;}
     if(route==="login"){
       if(user){location.replace(href("dashboard"));return;}
       renderAuth(root,repo);return;
     }
     if(!user){location.replace(href("login"));return;}
     if(route==="enrollment"&&user.role!=="student"){location.replace(href("dashboard"));return;}
-    const isAdmin=["admin","approvals","adminPosts","adminPostForm","adminAssignments","assignmentForm","adminCatalog"].includes(route);
+    const isAdmin=["admin","approvals","adminPosts","adminPostForm","adminAssignments","assignmentForm","adminCatalog","adminAccessRequests"].includes(route);
     if(isAdmin&&user.role!=="admin"){location.replace(href("denied"));return;}
     let active=route==="assignmentDetail"?"assignments":route==="postDetail"||route==="postForm"||route==="general"?"official":route==="adminPostForm"?"adminPosts":route==="assignmentForm"?"adminAssignments":route;
     const content=mountShell(user,active,repo);
@@ -69,6 +75,7 @@ async function bootstrap() {
         case "assignmentForm":renderAssignmentForm(ctx);break;
         case "adminAssignments":renderAdminTasks(ctx);break;
         case "adminCatalog":renderCatalog(ctx);break;
+        case "adminAccessRequests":await renderAdminAccessRequests(ctx);break;
         case "profile":renderProfile(ctx);break;
       }
     } catch(error){renderFailure(content,error);}

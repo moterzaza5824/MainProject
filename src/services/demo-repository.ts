@@ -1,10 +1,12 @@
-import type { AssignmentInput, PostInput, PostQuery, Repository, Snapshot, Role, SubjectInput, TaskStatus, UserRow } from "../types/models";
+import type { AccessRequestRow, AccessRequestStatus, AssignmentInput, PostInput, PostQuery, Repository, Snapshot, Role, SubjectInput, TaskStatus, UserRow } from "../types/models";
 import { createSeed } from "./seed";
 import { canViewPostForEnrollments, hasEnrollmentsForSubject, loadEnrollments, maxEnrollmentSectionForSubject, removeEnrollment, saveEnrollments } from "./enrollment";
 import { addSubject, deleteSubject, loadCatalog, updateSubject } from "./catalog";
 import { normalizeAssignmentResources, validateAssignment, validatePost } from "./validation";
+import { isEligibleCohortEmail } from "./auth-policy";
 
 const STORE = "se68-demo-data-v1", SESSION = "se68-demo-user-v1";
+const ACCESS_STORE = "se68-demo-access-requests-v1";
 export class DemoRepository implements Repository {
   readonly mode = "demo" as const;
   private read(): Snapshot {
@@ -14,6 +16,10 @@ export class DemoRepository implements Repository {
       const data = JSON.parse(text);
       if (!Array.isArray(data.users) || !Array.isArray(data.assignments) || !Array.isArray(data.posts) || !Array.isArray(data.progress)) throw new Error();
       let changed=false;
+      if (!data.users.some((user: UserRow) => user.uid === "guest-demo")) {
+        data.users.push(createSeed().users.find(user => user.uid === "guest-demo")!);
+        changed = true;
+      }
       if(data.progress.some((row:{status?:string})=>row.status!=="TODO"&&row.status!=="DONE")){
         data.progress=data.progress.map((row:{status?:string;[key:string]:unknown})=>({...row,status:row.status==="DONE"?"DONE":"TODO"}));
         changed=true;
@@ -48,11 +54,12 @@ export class DemoRepository implements Repository {
   }
   private async user(admin = false): Promise<UserRow> {
     const user = await this.currentUser();
-    if (!user || (admin && user.role !== "admin")) throw new Error("คุณไม่มีสิทธิ์ดำเนินการนี้");
+    if (!user || user.role === "pending_member" || (admin && user.role !== "admin")) throw new Error("คุณไม่มีสิทธิ์ดำเนินการนี้");
     return user;
   }
   async signIn(role: Role = "student"): Promise<void> {
-    const user = this.read().users.find(u => u.role === role)!;
+    const user = this.read().users.find(u => role === "pending_member" ? u.uid === "guest-demo" : u.role === role);
+    if (!user) throw new Error("ไม่พบบัญชีทดลองสำหรับบทบาทนี้");
     localStorage.setItem(SESSION, user.uid);
   }
   async signInWithPassword(username: string, password: string): Promise<void> {
@@ -66,6 +73,38 @@ export class DemoRepository implements Repository {
     throw new Error("Google Login ใช้งานได้เมื่อเชื่อม Supabase และตั้งค่า Google OAuth แล้ว");
   }
   async signOut(): Promise<void> { localStorage.removeItem(SESSION); }
+  private accessRequests(): AccessRequestRow[] { return JSON.parse(localStorage.getItem(ACCESS_STORE) ?? "[]"); }
+  async getOwnAccessRequest() {
+    const user = await this.currentUser();
+    if (!user) throw new Error("กรุณาเข้าสู่ระบบก่อน");
+    return this.accessRequests().find(row => row.uid === user.uid) ?? null;
+  }
+  async requestAccess() {
+    const user = await this.currentUser();
+    if (!user || user.auth_method !== "oauth" || isEligibleCohortEmail(user.email)) throw new Error("เฉพาะบัญชี Google ที่ต้องขอสิทธิ์เท่านั้น");
+    const rows = this.accessRequests();
+    if (!rows.some(row => row.uid === user.uid)) {
+      rows.push({ uid: user.uid, full_name: user.full_name, email: user.email, status: "pending", created_at: new Date().toISOString(), reviewed_at: null, reviewed_by: null });
+      localStorage.setItem(ACCESS_STORE, JSON.stringify(rows));
+    }
+  }
+  async listAccessRequests(status: AccessRequestStatus, page = 1) {
+    await this.user(true);
+    const rows = this.accessRequests().filter(row => row.status === status).sort((a,b) => a.created_at.localeCompare(b.created_at) || a.uid.localeCompare(b.uid));
+    const offset = (Math.max(1,page)-1)*10;
+    return { rows: rows.slice(offset,offset+10), total: rows.length };
+  }
+  async reviewAccessRequest(uid: string, action: "approve" | "reject") {
+    const admin = await this.user(true), rows = this.accessRequests(), row = rows.find(value => value.uid === uid);
+    if (!row || row.status !== "pending") throw new Error("คำขอนี้ถูกดำเนินการแล้ว กรุณาโหลดใหม่");
+    row.status = action === "approve" ? "approved" : "rejected";
+    row.reviewed_by = admin.uid; row.reviewed_at = new Date().toISOString();
+    if (action === "approve") {
+      const data = this.read(), user = data.users.find(value => value.uid === uid)!;
+      user.role = "student"; user.updated_at = row.reviewed_at; this.write(data);
+    }
+    localStorage.setItem(ACCESS_STORE, JSON.stringify(rows));
+  }
   async snapshot(): Promise<Snapshot> {
     const user = await this.user(), data = this.read();
     return { ...data, posts: data.posts.filter(p => p.status === "published" || p.author_id === user.uid || user.role === "admin"), progress: data.progress.filter(p => p.uid === user.uid), post_counts: { pending: data.posts.filter(p => p.status === "pending").length, published: data.posts.filter(p => p.status === "published").length } };

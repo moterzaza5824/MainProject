@@ -11,11 +11,12 @@ import { renderPosts, renderPostDetail, postCard } from "../src/views/posts";
 import { renderPostForm, renderAssignmentForm } from "../src/views/forms";
 import { renderDashboard, renderProfile, renderAdminTasks } from "../src/views/overview";
 import { renderAuth } from "../src/views/auth";
+import { renderAccessRequest, renderAdminAccessRequests } from "../src/views/access";
 import { renderCatalog } from "../src/views/catalog";
 import { renderEnrollment } from "../src/views/enrollment";
 import { applyStudentVisibility, loadEnrollments, saveEnrollment } from "../src/services/enrollment";
 import { pageDataRequirements } from "../src/services/page-data";
-import { isEligibleCohortEmail, normalizeAdminLoginEmail, sessionAuthMethod } from "../src/services/auth-policy";
+import { isEligibleCohortEmail, normalizeAdminLoginEmail, resolveSessionRole, sessionAuthMethod } from "../src/services/auth-policy";
 import { addSubject, deleteSubject, loadCatalog, updateSubject } from "../src/services/catalog";
 import { mountShell } from "../src/ui/shell";
 import type { Context } from "../src/ui/context";
@@ -81,6 +82,109 @@ test("cohort access accepts only 6802 student accounts", () => {
   assert.equal(sessionAuthMethod("invalid"), "other");
 });
 
+test("external Google access requires approval and never grants administrator privileges", () => {
+  assert.equal(resolveSessionRole("68020001@up.ac.th", "student", "oauth", true), "student");
+  assert.equal(resolveSessionRole("68020001@up.ac.th", "admin", "oauth", true), "student");
+  assert.equal(resolveSessionRole("other@gmail.com", "pending_member", "oauth", true), "pending_member");
+  assert.equal(resolveSessionRole("other@gmail.com", "student", "oauth", true, "pending"), "pending_member");
+  assert.equal(resolveSessionRole("other@gmail.com", "student", "oauth", true, "rejected"), "pending_member");
+  assert.equal(resolveSessionRole("other@gmail.com", "student", "oauth", true, "approved"), "student");
+  assert.equal(resolveSessionRole("other@gmail.com", "pending_member", "oauth", true, "approved"), "pending_member");
+  assert.equal(resolveSessionRole("admin@example.com", "admin", "oauth", true), "pending_member");
+  assert.equal(resolveSessionRole("admin@example.com", "admin", "oauth", true, "approved"), "student");
+  assert.equal(resolveSessionRole("admin@example.com", "admin", "password", false), "admin");
+  assert.equal(resolveSessionRole("other@gmail.com", "student", "password", false, "approved"), null);
+  assert.equal(resolveSessionRole("other@gmail.com", "student", "oauth", false, "approved"), null);
+  assert.equal(resolveSessionRole("other@gmail.com", "student", "other", true, "approved"), null);
+});
+
+test("pending accounts can only submit and inspect their own access request; duplicates and stale reviews are safe", async () => {
+  await repo.signIn("pending_member");
+  const guest = (await repo.currentUser())!;
+  assert.equal(await repo.getOwnAccessRequest(), null);
+  await assert.rejects(repo.snapshot(), /สิทธิ์/);
+  await assert.rejects(repo.getSubjects(), /สิทธิ์/);
+  await assert.rejects(repo.getEnrollments(), /สิทธิ์/);
+  await assert.rejects(repo.savePost(postInput()), /สิทธิ์/);
+  await assert.rejects(repo.listAccessRequests("pending"), /สิทธิ์/);
+  await assert.rejects(repo.reviewAccessRequest(guest.uid, "approve"), /สิทธิ์/);
+  await repo.requestAccess(); await repo.requestAccess();
+  assert.equal((await repo.getOwnAccessRequest())?.status, "pending");
+  await repo.signIn("student");
+  assert.equal(await repo.getOwnAccessRequest(), null);
+  await assert.rejects(repo.requestAccess());
+  await repo.signIn("admin");
+  assert.equal((await repo.listAccessRequests("pending")).total, 1);
+  await repo.reviewAccessRequest(guest.uid, "approve");
+  await assert.rejects(repo.reviewAccessRequest(guest.uid, "reject"), /ดำเนินการแล้ว/);
+  const approved = (await repo.listAccessRequests("approved")).rows[0];
+  assert.equal(approved.email, guest.email); assert.equal(approved.reviewed_by, "admin-demo");
+  await repo.signIn("pending_member");
+  assert.equal((await repo.currentUser())?.uid, guest.uid);
+  assert.equal((await repo.currentUser())?.role, "student");
+  await repo.saveEnrollments([{ subject_id: "seed-subject-1", section: 1 }]);
+  await repo.saveProgress("oop-lab4", "DONE", "ผ่านการอนุมัติแล้ว");
+  assert.equal((await repo.getEnrollments()).length, 1);
+  await assert.rejects(repo.saveAssignment(taskInput()), /สิทธิ์/);
+});
+
+test("centered access screen shows request, pending and rejected states without application navigation", async () => {
+  await repo.signIn("pending_member");
+  const user = (await repo.currentUser())!, root = document.querySelector<HTMLElement>("#app")!;
+  await renderAccessRequest(root, repo, user);
+  assert.ok(root.querySelector(".access-page"));
+  assert.match(root.textContent!, /guest@example.com/);
+  assert.equal(root.querySelector("#sidebar-nav"), null);
+  const request = root.querySelector<HTMLButtonElement>("#request-access")!;
+  assert.equal(request.hidden, false);
+  request.click(); await flush(); await flush();
+  assert.equal(request.hidden, true);
+  assert.match(root.querySelector("#access-status")!.textContent!, /รอแอดมินอนุมัติ/);
+  await repo.signIn("admin"); await repo.reviewAccessRequest(user.uid,"reject");
+  localStorage.setItem("se68-demo-user-v1",user.uid);
+  await repo.requestAccess();
+  assert.equal((await repo.getOwnAccessRequest())?.status,"rejected");
+  await renderAccessRequest(root,repo,user);
+  assert.equal(root.querySelector<HTMLButtonElement>("#request-access")!.hidden,true);
+  assert.match(root.querySelector("#access-status")!.textContent!,/ไม่ได้รับอนุมัติ/);
+});
+
+test("access status errors provide a retry and approved requests enter the dashboard", async () => {
+  win.location.href = "http://localhost:5173/pages/auth/request-access/";
+  await repo.signIn("pending_member");
+  const user = (await repo.currentUser())!, root = document.querySelector<HTMLElement>("#app")!;
+  const original = repo.getOwnAccessRequest.bind(repo);
+  repo.getOwnAccessRequest = async () => { throw new Error("โหลดสถานะไม่สำเร็จ"); };
+  await renderAccessRequest(root,repo,user);
+  assert.match(root.querySelector("#access-error")!.textContent!,/โหลดสถานะไม่สำเร็จ/);
+  assert.equal(root.querySelector<HTMLButtonElement>("#request-access")!.hidden,true);
+  repo.getOwnAccessRequest = original;
+  root.querySelector<HTMLButtonElement>("#check-access")!.click(); await flush(); await flush();
+  assert.equal(root.querySelector<HTMLButtonElement>("#request-access")!.hidden,false);
+  await repo.requestAccess(); await repo.signIn("admin"); await repo.reviewAccessRequest(user.uid,"approve");
+  localStorage.setItem("se68-demo-user-v1",user.uid);
+  root.querySelector<HTMLButtonElement>("#check-access")!.click(); await flush(); await flush();
+  assert.equal(location.pathname,"/pages/dashboard/");
+});
+
+test("admin access request screen reviews requests and keeps processed history", async () => {
+  await repo.signIn("pending_member"); const guest = (await repo.currentUser())!; await repo.requestAccess();
+  const ctx = await context("admin");
+  await renderAdminAccessRequests(ctx);
+  assert.match(ctx.root.textContent!,/guest@example.com/);
+  ctx.root.querySelector<HTMLButtonElement>("[data-access-approve]")!.click(); await flush();
+  assert.match(document.querySelector("dialog")!.textContent!, /guest@example.com/);
+  document.querySelector<HTMLButtonElement>("[data-confirm]")!.click(); await flush(); await flush();
+  assert.equal((await repo.listAccessRequests("pending")).total,0);
+  assert.equal((await repo.listAccessRequests("approved")).rows[0].uid,guest.uid);
+  const filter=ctx.root.querySelector<HTMLSelectElement>("#access-filter")!;
+  filter.value="approved"; filter.dispatchEvent(new Event("change")); await flush(); await flush();
+  assert.match(ctx.root.textContent!,/guest@example.com/);
+  assert.equal(ctx.root.querySelector("[data-access-approve]"),null);
+  mountShell(ctx.user,"adminAccessRequests",repo);
+  assert.match(document.querySelector('#sidebar-nav [aria-current="page"]')!.textContent!,/คำขอเข้าใช้งาน/);
+});
+
 test("role guards reject unauthorized mutations and progress remains private", async () => {
   const student = await context();
   await assert.rejects(repo.saveAssignment(taskInput()));
@@ -119,6 +223,10 @@ test("password login is admin-only and Google is presented as student login", as
   assert.ok(document.querySelector("main.auth-content"));
   assert.ok(document.querySelector("#login-form"));
   assert.ok(document.querySelector("#google-login"));
+  assert.ok(document.querySelector("#demo-student"));
+  document.querySelector<HTMLButtonElement>("#demo-guest")!.click(); await flush(); await flush();
+  assert.equal((await repo.currentUser())?.uid,"guest-demo");
+  assert.equal(location.pathname,"/pages/auth/request-access/");
   assert.match(document.body.textContent!,/Google Login ให้สิทธิ์นิสิตเท่านั้น/);
   const password=document.querySelector<HTMLInputElement>('[name="password"]')!,toggle=document.querySelector<HTMLButtonElement>(".password-toggle")!;
   password.value="รหัสทดสอบ";toggle.click();

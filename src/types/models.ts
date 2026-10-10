@@ -1,4 +1,9 @@
-export type Role = "student" | "admin";
+export type Role = "student" | "admin" | "pending_member";
+export type AccessRequestStatus = "pending" | "approved" | "rejected";
+export interface AccessRequestRow {
+  uid: string; email: string; full_name: string; status: AccessRequestStatus;
+  created_at: string; reviewed_at: string | null; reviewed_by: string | null;
+}
 export type Section = "ALL" | `${number}`;
 export type AcademicSemester = "1" | "2";
 export type TaskStatus = "TODO" | "DONE";
@@ -49,6 +54,10 @@ export interface Repository {
   signInWithPassword(username: string, password: string): Promise<void>;
   signInWithGoogle(): Promise<void>;
   signOut(): Promise<void>;
+  getOwnAccessRequest(): Promise<AccessRequestRow | null>;
+  requestAccess(): Promise<void>;
+  listAccessRequests(status: AccessRequestStatus, page?: number): Promise<{ rows: AccessRequestRow[]; total: number }>;
+  reviewAccessRequest(uid: string, action: "approve" | "reject"): Promise<void>;
   snapshot(): Promise<Snapshot>;
   listPosts(query: PostQuery): Promise<PostPage>;
   getPost(id: string): Promise<PostRow | null>;

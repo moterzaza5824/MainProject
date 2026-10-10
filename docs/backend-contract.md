@@ -1,6 +1,6 @@
 # สัญญาเชื่อม Backend / Database
 
-สัญญานี้ถูกนำไปสร้างเป็น migrations ใน `supabase/migrations/` และ deploy พร้อม seed ไปยัง Supabase project แล้ว โดยผ่าน `db lint` และ contract checks; Google OAuth ใช้งานได้ทั้ง local/Vercel แล้ว ส่วนการทดสอบหลายบัญชีจริงยังต้องดำเนินการก่อนเปิดใช้กับทั้งรุ่น
+สัญญานี้ถูกนำไปสร้างเป็น migrations ใน `supabase/migrations/` โดย migration 001–013 มีบันทึกการ deploy พร้อม seed ไปยัง Supabase project แล้ว ส่วน migration 014 สำหรับ Google ภายนอกเพิ่มในงานแก้ไขนี้และยังไม่ได้ deploy; ผ่านการทดสอบ PostgreSQL/RLS ในเครื่อง แต่ต้องทดสอบ Google OAuth ภายนอกจริงหลังนำขึ้นใช้งาน
 
 ## เปิดโหมดจริงเมื่อ backend พร้อม
 
@@ -20,7 +20,8 @@ VITE_* จะอยู่ใน JavaScript ฝั่งผู้ใช้ ใส
 
 | ตาราง | fields | constraint/default |
 |---|---|---|
-| users | uid, email, student_id, full_name, role, created_at, updated_at | uid UUID = auth.users.id; student/admin/pending_admin; student_id ว่างได้เฉพาะบัญชีผู้ดูแลภายนอก; unique email |
+| users | uid, email, student_id, full_name, role, created_at, updated_at | uid UUID = auth.users.id; student/admin/pending_admin/pending_member; student_id ว่างได้สำหรับบัญชีภายนอก; unique email |
+| access_requests | uid, status, created_at, reviewed_at, reviewed_by | uid PK/FK users; pending/approved/rejected; เขียนผ่าน RPC เท่านั้น |
 | subjects | subject_id, name, academic_year, semester, section_count, created_by, created_at, updated_at | UUID PK; ชื่อไม่ซ้ำในปี/ภาคเรียนเดียวกัน |
 | enrollments | enrollment_id, uid, subject_id, academic_year, semester, section, created_at, updated_at | หนึ่ง Sec ต่อ user/subject; section ต้องอยู่ในช่วงของวิชา และวิชาที่มี Sec เดียวถูกกำหนดเป็น Sec 1 โดย trigger |
 | posts | post_id, author_id, author_name, title, content, category, status, is_pinned, image_url, subject_id, subject_name, target_scope, target_sections, attachments, approved_by, created_at, updated_at | UUID PK; author/reviewer FK users; official/general; published/pending/rejected |
@@ -47,8 +48,8 @@ adapter อ่าน public_profiles เฉพาะ uid/full_name สร้า�
 1. ตั้ง Google provider และ redirect allowlist ให้ตรง /pages/dashboard/ ทั้ง localhost/เว็บจริงสำหรับนิสิต
    เปิด Email provider สำหรับ Admin ที่ใช้อีเมลทั่วไปและ Password
 2. สร้าง users profile ฝั่ง server หลัง login แรก ใช้ auth.users.id ไม่ใช่ email หรือ Google sub
-3. ตรวจ verified student email ด้วย `^6802[0-9]{4}@up\.ac\.th$` ที่ server; OAuth `hd` เป็น hint ไม่ใช่สิทธิ์ บัญชี Email/Password ภายนอกเริ่มเป็น `pending_admin` และไม่มีสิทธิ์ในแอป
-4. ตั้ง admin ผ่านผู้ดูแลที่เชื่อถือได้ ห้าม client เลือก role จริง และให้สิทธิ์ admin เฉพาะ JWT ที่มี `amr.method = password`; OAuth ของบัญชี `6802` ทำงานในฐานะ student และ OAuth ภายนอกถูกปฏิเสธ
+3. Google `6802xxxx@up.ac.th` ได้สิทธิ์นิสิตอัตโนมัติ อีเมล Google อื่นเริ่มเป็น `pending_member` อ่านได้เฉพาะ profile/คำขอตนเอง ส่งคำขอผ่าน `request_app_access()` โดย server ตรวจ uid, Google OAuth และ verified email บัญชี Email/Password ภายนอกยังเริ่มเป็น `pending_admin`
+4. ตั้ง admin ผ่านผู้ดูแลที่เชื่อถือได้ ห้าม client เลือก role จริง และให้สิทธิ์ admin เฉพาะ JWT ที่มี `amr.method = password`; `review_app_access(uid, decision)` อนุมัติ/ปฏิเสธเฉพาะคำขอ pending แบบ transaction เมื่ออนุมัติ Google ภายนอกจึงได้สิทธิ์นิสิต โดย RLS ตรวจ approved request ทุกครั้ง
 5. ป้องกัน client เปลี่ยน uid/email/student_id/role
 6. ตรวจ session หมดอายุ บัญชีไม่ผ่านเกณฑ์ และถอนสิทธิ์ทุก API
 
@@ -56,7 +57,8 @@ adapter อ่าน public_profiles เฉพาะ uid/full_name สร้า�
 
 | ข้อมูล | Student | Admin |
 |---|---|---|
-| users | อ่านบัญชีตนเอง | UI นี้ไม่จำเป็นต้องอ่านทุกบัญชี |
+| users | อ่านบัญชีตนเอง | อ่านชื่อและอีเมลของผู้ขอเข้าใช้งาน |
+| access_requests | อ่าน/ส่งคำขอตนเอง ไม่สามารถแก้ผลตรวจ | อ่านและอนุมัติ/ปฏิเสธผ่าน RPC |
 | published posts | อ่าน | อ่าน/จัดการ |
 | pending/rejected | เฉพาะของตน | อ่าน/ตรวจสอบทั้งหมด |
 | post insert | general → published; official → pending; author เป็นตนเอง | ตามกติกาผู้ดูแล |
@@ -79,7 +81,7 @@ review ใช้ conditional update เฉพาะ pending; savePost มี upd
 - DB กำหนด `created_by` และคง identity/audit fields เอง; progress เขียนได้เฉพาะ assignment ที่ RLS อนุญาตให้ผู้ใช้นั้นเห็น
 - การแก้ assignment ใช้ `updated_at` เป็น optimistic concurrency guard เพื่อไม่เขียนทับการแก้จากอีกหน้าจอ
 - remote-safe RLS smoke test จำลอง 2 students + 1 admin ใน transaction และ rollback หลังตรวจ private progress, pending post, role และ owner fields
-- profile provisioning, constraint และ restrictive RLS จำกัดบัญชี `6802xxxx@up.ac.th`
+- profile provisioning, constraint และ restrictive RLS ให้สิทธิ์ `6802xxxx@up.ac.th` อัตโนมัติ และ Google ภายนอกเฉพาะหลังแอดมินอนุมัติ (migration 014 ยังไม่ได้ deploy ในงานแก้ไขนี้)
 - adapter สำหรับ subjects/enrollments รวมถึง posts/assignments/progress
 
 ## ยังต้องทำก่อน Production

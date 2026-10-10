@@ -1,9 +1,10 @@
 import { createClient } from "@supabase/supabase-js";
-import type { AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, SubjectInput, TaskStatus, UserRow } from "../types/models";
+import type { AccessRequestRow, AccessRequestStatus, AssignmentInput, AssignmentRow, EnrollmentRow, PostInput, PostQuery, PostRow, ProgressRow, Repository, Snapshot, SubjectInput, TaskStatus, UserRow } from "../types/models";
 import { normalizeAssignmentResources, validateAssignment, validatePost } from "./validation";
 import { href } from "../utils/routes";
 import { AccessDeniedError } from "../utils/errors";
-import { isEligibleCohortEmail, normalizeAdminLoginEmail, sessionAuthMethod } from "./auth-policy";
+import { isEligibleCohortEmail, normalizeAdminLoginEmail, resolveSessionRole, sessionAuthMethod } from "./auth-policy";
+const ACCESS_FIELDS = "uid,status,created_at,reviewed_at,reviewed_by";
 const POST_FIELDS = "post_id,author_id,author_name,title,content,category,status,is_pinned,image_url,subject_id,subject_name,target_scope,target_sections,attachments,approved_by,created_at,updated_at";
 const TASK_FIELDS = "assignment_id,created_by,subject_id,subject_name,academic_year,semester,title,description,submission_channel,schedule_mode,due_dates,resources,created_at,updated_at";
 const SUBJECT_FIELDS = "subject_id,name,academic_year,semester,section_count";
@@ -36,9 +37,10 @@ export class SupabaseRepository implements Repository {
     if (!data.user) return null;
     const cohortAccount = isEligibleCohortEmail(data.user.email);
     const authMethod = sessionAuthMethod(session.data.session.access_token);
-    if (!cohortAccount && authMethod !== "password") {
+    const google = data.user.app_metadata.provider === "google" || data.user.app_metadata.providers?.includes("google") === true;
+    if (authMethod !== "password" && (authMethod !== "oauth" || !google)) {
       await this.signOut();
-      throw new AccessDeniedError("บัญชีภายนอกมหาวิทยาลัยต้องเข้าสู่ระบบด้วยอีเมลและ Password ของผู้ดูแล");
+      throw new AccessDeniedError("กรุณาเข้าสู่ระบบด้วย Google หรือบัญชีผู้ดูแล");
     }
     const result = await this.client.from("users").select("uid,email,student_id,full_name,role,created_at,updated_at").eq("uid", data.user.id).single();
     if (result.error) {
@@ -49,11 +51,18 @@ export class SupabaseRepository implements Repository {
       throw new Error("ยังไม่พบข้อมูลผู้ใช้ กรุณาตรวจสอบการสร้างโปรไฟล์ในระบบ");
     }
     const profile = result.data as UserRow;
-    if (!cohortAccount && profile.role !== "admin") {
-      await this.signOut();
-      throw new AccessDeniedError("บัญชีนี้ยังไม่ได้รับอนุมัติเป็นผู้ดูแลระบบ");
+    let requestStatus: AccessRequestStatus | undefined;
+    if (!cohortAccount && authMethod === "oauth") {
+      const request = await this.client.from("access_requests").select("status").eq("uid", profile.uid).maybeSingle();
+      if (request.error) throw request.error;
+      requestStatus = request.data?.status as AccessRequestStatus | undefined;
     }
-    return { ...profile, auth_method: authMethod, role: profile.role === "admin" && authMethod !== "password" ? "student" : profile.role };
+    const role = resolveSessionRole(profile.email, profile.role, authMethod, google, requestStatus);
+    if (!role) {
+      await this.signOut();
+      throw new AccessDeniedError("Email/Password ใช้สำหรับผู้ดูแลระบบเท่านั้น นิสิตกรุณาเข้าสู่ระบบด้วย Google");
+    }
+    return { ...profile, auth_method: authMethod, role };
   }
   onAuthStateChange(callback: (signedIn: boolean) => void): () => void {
     const { data } = this.client.auth.onAuthStateChange((event, session) => {
@@ -64,7 +73,7 @@ export class SupabaseRepository implements Repository {
   }
   private async user(admin = false) {
     const user = await this.currentUser();
-    if (!user || (admin && user.role !== "admin")) throw new Error("ไม่มีสิทธิ์ดำเนินการ");
+    if (!user || user.role === "pending_member" || (admin && user.role !== "admin")) throw new Error("ไม่มีสิทธิ์ดำเนินการ");
     return user;
   }
   async signIn() {
@@ -101,12 +110,41 @@ export class SupabaseRepository implements Repository {
       provider: "google",
       options: {
         redirectTo: new URL(href("dashboard"), location.origin).href,
-        queryParams: { hd: "up.ac.th", prompt: "select_account" }
+        queryParams: { prompt: "select_account" }
       }
     });
     if (error) throw error;
   }
   async signOut() { const { error } = await this.client.auth.signOut({ scope: "local" }); if (error) throw error; }
+  async getOwnAccessRequest(): Promise<AccessRequestRow | null> {
+    const user = await this.currentUser();
+    if (!user) throw new Error("กรุณาเข้าสู่ระบบก่อน");
+    const { data, error } = await this.client.from("access_requests").select(ACCESS_FIELDS).eq("uid", user.uid).maybeSingle();
+    if (error) throw error;
+    return data ? { ...data, email: user.email, full_name: user.full_name } as AccessRequestRow : null;
+  }
+  async requestAccess() {
+    const { error } = await this.client.rpc("request_app_access");
+    if (error) throw error;
+  }
+  async listAccessRequests(status: AccessRequestStatus, page = 1) {
+    await this.user(true);
+    const offset = (Math.max(1, page) - 1) * 10;
+    const { data, count, error } = await this.client.from("access_requests")
+      .select(`${ACCESS_FIELDS},users!access_requests_uid_fkey(email,full_name)`, { count: "exact" })
+      .eq("status", status).order("created_at").order("uid").range(offset, offset + 9);
+    if (error) throw error;
+    const rows = (data ?? []).map(value => {
+      const { users, ...request } = value as unknown as Omit<AccessRequestRow, "email" | "full_name"> & { users: { email: string; full_name: string } };
+      return { ...request, ...users };
+    });
+    return { rows, total: count ?? 0 };
+  }
+  async reviewAccessRequest(uid: string, action: "approve" | "reject") {
+    await this.user(true);
+    const { error } = await this.client.rpc("review_app_access", { requested_uid: uid, decision: action });
+    if (error) throw error;
+  }
   async snapshot(): Promise<Snapshot> {
     const user = await this.user();
     // Batch paging avoids the default 1,000-row truncation. Replace with server-filtered

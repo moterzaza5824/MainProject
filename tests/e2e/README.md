@@ -12,6 +12,9 @@
 
 ```sh
 npx supabase db query --linked --file tests/e2e/supabase-rls-smoke.sql
+npx supabase db query --linked --file tests/e2e/access-requests-rls-smoke.sql
 ```
 
 อย่าลบ `ROLLBACK` หรือเปลี่ยนเป็น `COMMIT` เมื่อรันกับ project ที่มีข้อมูลจริง
+
+ชุด `access-requests-rls-smoke.sql` ต้องใช้ migration 014 ตรวจบัญชี Google ภายนอกตั้งแต่ pending → ส่งคำขอ → อนุมัติ/ปฏิเสธ รวมการป้องกันอ่านข้อมูลแอปก่อนอนุมัติ อ่านคำขอคนอื่น อนุมัติตัวเอง เขียนตารางคำขอตรง ๆ คำขอซ้ำ ตรวจซ้ำ และบัญชีอีเมลไม่ยืนยัน หลังอนุมัติทดสอบลงทะเบียน งาน progress และ moderation ด้วยสิทธิ์นิสิต

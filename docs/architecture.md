@@ -42,7 +42,9 @@ MainProject/
 หน้าจอไม่เรียก Supabase SDK โดยตรง เลือกผู้ให้ข้อมูลที่ getRepository():
 
 - demo: จำลอง CRUD/บทบาทด้วย localStorage และแสดงป้ายทดลองชัดเจน
-- supabase: นิสิตใช้ Google OAuth ของมหาวิทยาลัย, Admin ใช้อีเมลทั่วไป/Password และ query ตารางผ่าน SDK โดยฐานข้อมูลตรวจวิธี login จาก JWT พร้อมบังคับสิทธิ์ด้วย RLS
+- supabase: นิสิตใช้ Google OAuth; บัญชี `6802` เข้าได้ทันที ส่วนอีเมลอื่นต้องขอสิทธิ์และได้รับอนุมัติ Admin ใช้อีเมลทั่วไป/Password ฐานข้อมูลตรวจวิธี login จาก JWT พร้อมบังคับสิทธิ์ด้วย RLS
+
+บัญชี `pending_member` ถูก bootstrap ส่งไปหน้าขอสิทธิ์ก่อนสร้าง shell หรือโหลดข้อมูลแอป ส่วน `/pages/admin/access-requests/` โหลดคำขอแบบแบ่งหน้า ผ่าน Repository แอดมินอนุมัติ/ปฏิเสธด้วย RPC แบบ transaction และตรวจสถานะ pending เพื่อป้องกันการตรวจซ้ำ migration 014 เพิ่มตาราง `access_requests` และขยาย restrictive RLS โดยคงเงื่อนไข enrollment/Sec และ private progress เดิม
 
 `page-data.ts` กำหนดความต้องการราย route หน้ารายการประกาศจึงไม่โหลด snapshot ของงานและความคืบหน้า ส่วนหน้ารายละเอียดโหลดเฉพาะ record ที่เปิดอยู่ การ refresh ใช้กติกาเดียวกันเพื่อลด query ที่ไม่เกี่ยวข้อง
 

@@ -5,7 +5,8 @@ export function createSeed(): Snapshot {
   const due = (offset: number, hour = 23) => { const d = new Date(now); d.setDate(d.getDate() + offset); d.setHours(hour, 59, 0, 0); return d.toISOString(); };
   const users: UserRow[] = [
     { uid: "student-demo", full_name: "ณัฐดนัย ใจดี", email: "68020001@up.ac.th", student_id: "68020001", role: "student", created_at: iso, updated_at: iso },
-    { uid: "admin-demo", full_name: "พิมพ์ชนก ศรีสุข", email: "68020002@up.ac.th", student_id: "68020002", role: "admin", created_at: iso, updated_at: iso }
+    { uid: "admin-demo", full_name: "พิมพ์ชนก ศรีสุข", email: "68020002@up.ac.th", student_id: "68020002", role: "admin", created_at: iso, updated_at: iso },
+    { uid: "guest-demo", full_name: "ผู้ขอเข้าใช้งาน", email: "guest@example.com", student_id: null, role: "pending_member", auth_method: "oauth", created_at: iso, updated_at: iso }
   ];
   return {
     users,

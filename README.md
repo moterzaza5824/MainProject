@@ -43,3 +43,5 @@ npm run preview
 - [Product Backlog และลำดับส่งมอบ](docs/backlog.md)
 
 Schema, profile trigger, RLS, seed และ Supabase adapter อยู่ใน `supabase/migrations/` และตรวจสัญญาอัตโนมัติเมื่อรัน `npm test` การตั้งค่า project/Google OAuth ทำภายนอก repository ตาม `docs/backend-setup.md` และห้ามใส่ service-role key ใน `VITE_*` หรือ Git
+
+Google อีเมลนอก `6802xxxx@up.ac.th` สามารถขอสิทธิ์ผ่านหน้ากลาง และ Admin ตรวจในเมนู “คำขอเข้าใช้งาน” เมื่ออนุมัติแล้วใช้งานได้เหมือนนิสิต ฟีเจอร์นี้ต้องใช้ migration `014_google_access_requests.sql` ก่อน deploy frontend ดูรายละเอียดใน [คู่มือตั้งค่า Backend](docs/backend-setup.md)

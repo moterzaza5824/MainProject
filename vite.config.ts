@@ -28,6 +28,8 @@ export default defineConfig({
         home: resolve(projectDirectory, "src/index.html"),
         login: page("auth/login"),
         accessDenied: page("auth/access-denied"),
+        accessRequest: page("auth/request-access"),
+        adminAccessRequests: page("admin/access-requests"),
         dashboard: page("dashboard"),
         officialPosts: page("posts/official"),
         generalPosts: page("posts/general"),

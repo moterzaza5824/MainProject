@@ -16,19 +16,16 @@ begin
 end;
 $$;
 
+insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, email_confirmed_at, created_at, updated_at)
+values (
+  '55555555-5555-4555-8555-555555555555', 'external-google@example.com',
+  '{"provider":"google","providers":["google"]}', '{"full_name":"External Google"}', now(), now(), now()
+);
 do $$
-declare was_rejected boolean := false;
 begin
-  begin
-    insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
-    values (
-      '55555555-5555-4555-8555-555555555555', 'external-google@example.com',
-      '{"provider":"google","providers":["google"]}', '{"full_name":"External Google"}', now(), now()
-    );
-  exception when others then
-    was_rejected := true;
-  end;
-  if not was_rejected then raise exception 'external OAuth account was accepted'; end if;
+  if (select role from public.users where uid = '55555555-5555-4555-8555-555555555555') <> 'pending_member' then
+    raise exception 'external Google account did not start as pending_member';
+  end if;
 end;
 $$;
 

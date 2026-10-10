@@ -17,10 +17,11 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
       </label>
       <button class="button primary" type="submit">${icon("user")} เข้าสู่ระบบผู้ดูแล</button>
     </form>
+    ${repo.mode === "demo" ? '<div class="divider">ทดลองใช้งาน</div><div class="stack"><button class="button" id="demo-student" type="button">ทดลองเป็นนิสิต 6802</button><button class="button primary" id="demo-guest" type="button">ทดลองขอสิทธิ์ด้วยอีเมลภายนอก</button></div>' : ""}
     <div class="divider">สำหรับนิสิต</div>
     <button class="button google-button" id="google-login" type="button"><b aria-hidden="true">G</b> เข้าสู่ระบบนิสิตด้วย Google</button>
-    <p class="auth-note google-requirement"><b>Google Login ให้สิทธิ์นิสิตเท่านั้น</b><br>รองรับเฉพาะอีเมล 6802xxxx@up.ac.th และไม่สามารถเปิดเมนู Admin ได้ แม้บัญชีนั้นจะได้รับมอบหมายเป็นผู้ดูแล${repo.mode === "demo" ? " · ต้องเชื่อม Supabase ก่อนใช้งานจริง" : ""}</p>`;
-  const deniedPanel = '<div class="info-box">สำหรับนิสิตรหัสขึ้นต้น 6802 และใช้อีเมล @up.ac.th เท่านั้น ส่วนหน้าจัดการระบบจำกัดสิทธิ์เฉพาะ Admin</div><a class="button primary" href="' + href("dashboard") + '">กลับหน้าภาพรวม</a><button class="button" id="change-account">เปลี่ยนบัญชี</button>';
+    <p class="auth-note google-requirement"><b>Google Login ให้สิทธิ์นิสิตเท่านั้น</b><br>อีเมล 6802xxxx@up.ac.th เข้าใช้งานได้ทันที อีเมลอื่นสามารถส่งคำขอให้แอดมินอนุมัติ และไม่สามารถเปิดเมนู Admin ได้${repo.mode === "demo" ? " · ต้องเชื่อม Supabase ก่อนใช้งานจริง" : ""}</p>`;
+  const deniedPanel = '<div class="info-box">บัญชีนี้ไม่มีสิทธิ์เปิดหน้าที่ร้องขอ ส่วนหน้าจัดการระบบจำกัดสิทธิ์เฉพาะ Admin</div><a class="button primary" href="' + href("dashboard") + '">กลับหน้าภาพรวม</a><button class="button" id="change-account">เปลี่ยนบัญชี</button>';
 
   root.innerHTML = `<div class="auth-page"><section class="auth-story"><a class="brand" href="${href("login")}"><span class="brand-symbol">S<span>68</span></span><span>SE68 <b>HUB</b></span></a><div><p class="eyebrow" style="color:#83d9a6">YOUR CAMPUS. CONNECTED.</p><h1>ทุกข่าวสาร<br>ทุกงานของรุ่น<br><span>อยู่ที่เดียวกัน</span></h1><p>พื้นที่สำหรับนิสิตวิศวกรรมซอฟต์แวร์ รุ่น 68 ติดตามเรื่องสำคัญและจัดการงานของคุณได้อย่างเป็นระเบียบ</p><div class="auth-features"><div class="auth-feature">${icon("news")} ไม่พลาดประกาศสำคัญ</div><div class="auth-feature">${icon("calendar")} กำหนดส่งแยกตาม Section</div><div class="auth-feature">${icon("check")} เห็นความคืบหน้าของตัวเอง</div></div></div><footer>UNIVERSITY OF PHAYAO · SOFTWARE ENGINEERING</footer></section>
   <main class="auth-content"><div class="auth-box"><div class="auth-icon">${icon(denied ? "shield" : "book")}</div><p class="eyebrow">SE68 INFORMATION HUB</p><h2>${denied ? "ไม่สามารถเข้าใช้งานหน้านี้" : "ยินดีต้อนรับกลับ"}</h2><p class="subtitle">${denied ? "หน้านี้ต้องใช้บัญชีที่มีสิทธิ์เหมาะสม กรุณาตรวจสอบบัญชีและบทบาทผู้ใช้" : "เข้าสู่ระบบเพื่อเริ่มต้นวันเรียนของคุณ"}</p>
@@ -61,6 +62,18 @@ export function renderAuth(root: HTMLElement, repo: Repository, denied = false) 
     });
   };
   const google = root.querySelector<HTMLButtonElement>("#google-login");
+  if (repo.mode === "demo") {
+    for (const [selector, role] of [["#demo-student", "student"], ["#demo-guest", "pending_member"]] as const) {
+      const button = root.querySelector<HTMLButtonElement>(selector);
+      if (button) button.onclick = () => void busy(button, async () => {
+        try {
+          await repo.signIn(role);
+          const user = await repo.currentUser();
+          navigate(user?.role === "pending_member" ? "accessRequest" : "dashboard");
+        } catch (value) { showError(value); }
+      });
+    }
+  }
   if (google) google.onclick = () => {
     if (error) error.textContent = "";
     void busy(google, async () => {

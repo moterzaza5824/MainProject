@@ -18,6 +18,7 @@ const externalAdminMigration = contents[migrationNames.indexOf("010_allow_extern
 const singleSectionMigration = contents[migrationNames.indexOf("011_force_single_section_enrollment.sql")];
 const courseNewsMigration = contents[migrationNames.indexOf("012_scope_course_news_to_enrollments.sql")];
 const newsSeparationMigration = contents[migrationNames.indexOf("013_separate_general_and_official_news.sql")];
+const accessMigration = contents[migrationNames.indexOf("014_google_access_requests.sql")];
 const seed = contents.at(-1);
 
 for (const [index,sql] of contents.entries()) {
@@ -56,5 +57,12 @@ assert.match(hardeningMigration,/new\.created_by\s*=\s*\(select auth\.uid\(\)\)/
 assert.match(integrityMigration,/new\.full_name\s*=\s*old\.full_name/i,"students must not be able to forge profile names");
 assert.match(integrityMigration,/maximum_day/i,"due dates must validate real calendar days");
 assert.match(seed,/insert into public\.subjects/i,"missing reproducible subject seed");
+assert.match(accessMigration,/alter table public\.access_requests enable row level security/i,"access requests require RLS");
+assert.match(accessMigration,/on conflict \(uid\) do nothing/i,"request retries must not create duplicates or reset decisions");
+assert.match(accessMigration,/where uid = requested_uid and status = 'pending'/i,"review must reject stale decisions");
+assert.match(accessMigration,/if not private\.is_admin\(\) then/i,"only password administrators may review access requests");
+assert.match(accessMigration,/r\.status = 'approved'/i,"external application access must require an approved request");
+assert.match(accessMigration,/a\.email_confirmed_at is not null/i,"request identities must have verified emails");
+assert.match(accessMigration,/revoke all on table public\.access_requests from anon, authenticated/i,"requests must not allow direct client writes");
 
 console.log("Supabase contract checks passed (schema, auth trigger, RLS, seed).");

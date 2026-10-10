@@ -455,3 +455,12 @@ label>input,label>select,label>textarea{margin-top:7px}
 }
 
 .badge,.filter-panel>label,.filter-panel select,.segmented button,.date-label,.task-meta strong,.calendar-event{font-size:14px}
+.access-page{min-height:100dvh;display:grid;place-items:center;padding:24px;background:#f5f7f6}
+.access-card{width:min(100%,480px);text-align:center;padding:36px;overflow-wrap:anywhere}
+.access-card .auth-icon{margin:0 auto 20px}.access-card h1{font-size:26px;margin:12px 0}
+.access-identity{display:grid;gap:6px;margin:24px 0}.access-identity span,.access-card p{color:var(--muted)}
+.access-actions{display:grid;gap:10px;margin-top:24px}#access-status{line-height:1.7}#access-error{color:#b42318;margin-top:16px}
+.access-request-row{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:22px 0;border-bottom:1px solid var(--border)}
+.access-request-row>div:first-child{min-width:0;overflow-wrap:anywhere}.access-request-row p{margin:6px 0}.access-request-row small{color:var(--muted)}
+.access-pagination{justify-content:center;flex-wrap:wrap;margin-top:24px}
+@media(max-width:580px){.access-card{padding:24px}.access-request-row{align-items:flex-start;flex-direction:column}.access-request-row .actions{flex-wrap:wrap}}

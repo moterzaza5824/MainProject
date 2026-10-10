@@ -1,3 +1,4 @@
+import type { AccessRequestStatus, Role } from "../types/models";
 export const COHORT_EMAIL_PATTERN = /^6802[0-9]{4}@up\.ac\.th$/i;
 const STUDENT_ID_PATTERN = /^6802[0-9]{4}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -12,6 +13,13 @@ export function normalizeAdminLoginEmail(identifier: string): string | null {
   const value = identifier.trim().toLowerCase();
   if (STUDENT_ID_PATTERN.test(value)) return `${value}@up.ac.th`;
   return EMAIL_PATTERN.test(value) ? value : null;
+}
+
+export function resolveSessionRole(email: string, storedRole: string, method: SessionAuthMethod, google: boolean, requestStatus?: AccessRequestStatus): Role | null {
+  if (method === "password") return storedRole === "admin" ? "admin" : null;
+  if (method !== "oauth" || !google) return null;
+  if (isEligibleCohortEmail(email)) return "student";
+  return requestStatus === "approved" && (storedRole === "student" || storedRole === "admin") ? "student" : "pending_member";
 }
 
 export function sessionAuthMethod(accessToken: string): SessionAuthMethod {
